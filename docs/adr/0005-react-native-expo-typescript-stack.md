@@ -25,6 +25,10 @@ core's tests green in CI.
   generated once and held in the platform secure keystore through
   `expo-secure-store` (iOS Keychain / Android Keystore). Local-first, on-device
   only — no cloud, no network, no bank integration in v1.
+- **Version baseline: Expo SDK 54** (React 19.1, React Native 0.81, expo-router 6,
+  TypeScript 5.9, new architecture enabled). We track the current SDK because the
+  **Expo Go** client only runs the latest SDK — pinning an older SDK means the
+  app won't open in an up-to-date Expo Go without side-loading a matching client.
 
 ## Considered options
 
@@ -46,3 +50,8 @@ core's tests green in CI.
   device.
 - Should we ever leave RN, only the adapter layer and UI are rewritten — the
   `core` TypeScript travels to any JS/TS runtime.
+- **Expo Go caveat:** `react-native-mmkv` is not bundled into Expo Go, so the
+  encrypted store is unavailable there — the app falls back to seeded, in-memory
+  categories (no crash, no persistence). Real encrypted persistence requires a
+  dev build (`expo run:android` / `expo run:ios` or EAS). Expo Go remains a valid
+  way to preview the UI shell; it is not the store's test surface.
