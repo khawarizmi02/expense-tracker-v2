@@ -1,0 +1,22 @@
+{
+  "expo": {
+    "name": "Kira",
+    "slug": "kira",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "scheme": "kira",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.kira.app"
+    },
+    "android": {
+      "package": "com.kira.app"
+    },
+    "plugins": ["expo-router", "expo-secure-store"],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}
