@@ -39,6 +39,16 @@ function requireCategory(categories: readonly Category[], id: string): Category 
   return found;
 }
 
+/** Guard the id exists, then return a new list with `patch` applied to it. */
+function patchCategory(
+  categories: readonly Category[],
+  id: string,
+  patch: (category: Category) => Category,
+): Category[] {
+  requireCategory(categories, id);
+  return categories.map((c) => (c.id === id ? patch(c) : c));
+}
+
 /**
  * Build the seeded default categories. Onboarding calls this once to give a new
  * user a taxonomy to start from (they can then add/rename/re-icon/remove).
@@ -77,9 +87,8 @@ export function renameCategory(
   id: string,
   name: string,
 ): Category[] {
-  requireCategory(categories, id);
   const nextName = normalizeName(name);
-  return categories.map((c) => (c.id === id ? { ...c, name: nextName } : c));
+  return patchCategory(categories, id, (c) => ({ ...c, name: nextName }));
 }
 
 /** Change a category's icon and/or color ("re-icon"). */
@@ -88,16 +97,11 @@ export function updateCategoryAppearance(
   id: string,
   appearance: { icon?: string; color?: string },
 ): Category[] {
-  requireCategory(categories, id);
-  return categories.map((c) =>
-    c.id === id
-      ? {
-          ...c,
-          icon: appearance.icon ?? c.icon,
-          color: appearance.color ?? c.color,
-        }
-      : c,
-  );
+  return patchCategory(categories, id, (c) => ({
+    ...c,
+    icon: appearance.icon ?? c.icon,
+    color: appearance.color ?? c.color,
+  }));
 }
 
 /**
@@ -109,8 +113,7 @@ export function archiveCategory(
   categories: readonly Category[],
   id: string,
 ): Category[] {
-  requireCategory(categories, id);
-  return categories.map((c) => (c.id === id ? { ...c, archived: true } : c));
+  return patchCategory(categories, id, (c) => ({ ...c, archived: true }));
 }
 
 /** Restore an archived category to active use. */
@@ -118,8 +121,7 @@ export function unarchiveCategory(
   categories: readonly Category[],
   id: string,
 ): Category[] {
-  requireCategory(categories, id);
-  return categories.map((c) => (c.id === id ? { ...c, archived: false } : c));
+  return patchCategory(categories, id, (c) => ({ ...c, archived: false }));
 }
 
 /**

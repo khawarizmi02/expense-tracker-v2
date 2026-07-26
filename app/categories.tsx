@@ -93,15 +93,17 @@ function CategoryRow({ category }: { category: Category }) {
 }
 
 export default function CategoriesScreen() {
-  const { colors, radius, spacing, typography } = useTheme();
+  const { colors, radius, spacing, typography, categoryColor } = useTheme();
   const router = useRouter();
   const { activeCategories, add } = useCategories();
   const [name, setName] = useState('');
+  const [color, setColor] = useState(COLOR_TOKENS[0]);
+  const [icon, setIcon] = useState(ICON_CHOICES[0]);
 
   const addCategory = () => {
     const trimmed = name.trim();
     if (!trimmed) return;
-    add({ name: trimmed, icon: 'dots', color: nextIn(COLOR_TOKENS, 'categoryGray') });
+    add({ name: trimmed, icon, color });
     setName('');
   };
 
@@ -151,6 +153,48 @@ export default function CategoriesScreen() {
             </Pressable>
           </View>
 
+          <View style={[styles.picker, { gap: spacing.sm }]}>
+            {COLOR_TOKENS.map((token) => (
+              <Pressable
+                key={token}
+                accessibilityRole="button"
+                accessibilityLabel={`Use color ${token}`}
+                accessibilityState={{ selected: token === color }}
+                onPress={() => setColor(token)}
+                style={[
+                  styles.colorSwatch,
+                  { backgroundColor: categoryColor(token) },
+                  token === color && { borderColor: colors.textPrimary, borderWidth: 2 },
+                ]}
+              />
+            ))}
+          </View>
+
+          <View style={[styles.picker, { gap: spacing.sm }]}>
+            {ICON_CHOICES.map((token) => (
+              <Pressable
+                key={token}
+                accessibilityRole="button"
+                accessibilityLabel={`Use icon ${token}`}
+                accessibilityState={{ selected: token === icon }}
+                onPress={() => setIcon(token)}
+                style={[
+                  styles.iconChoice,
+                  {
+                    backgroundColor: token === icon ? colors.accent : colors.surface,
+                    borderRadius: radius.md,
+                  },
+                ]}
+              >
+                <Ionicons
+                  name={ioniconFor(token)}
+                  size={20}
+                  color={token === icon ? colors.onAccent : colors.textSecondary}
+                />
+              </Pressable>
+            ))}
+          </View>
+
           {activeCategories.map((category) => (
             <CategoryRow key={category.id} category={category} />
           ))}
@@ -180,6 +224,9 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   addRow: { flexDirection: 'row', alignItems: 'center' },
+  picker: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center' },
+  colorSwatch: { width: 32, height: 32, borderRadius: 16 },
+  iconChoice: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
   input: { flex: 1, paddingHorizontal: 14, paddingVertical: 12, fontSize: 16 },
   addBtn: { width: 48, height: 48, alignItems: 'center', justifyContent: 'center' },
   row: { flexDirection: 'row', alignItems: 'center', gap: 12 },
