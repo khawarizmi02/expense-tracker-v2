@@ -11,8 +11,8 @@ money earned). The central entity of the app. Kira does **not** track income,
 paychecks, deposits, or account balances.
 
 Key attributes (meaning only): the amount spent, what category it counts
-against, the merchant, when it happened, and how it was captured (see *Capture
-source*).
+against, the merchant, an optional free-text note, when it happened, and how it
+was captured (see *Capture source*).
 
 ## Merchant
 

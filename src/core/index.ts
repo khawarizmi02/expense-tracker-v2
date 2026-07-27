@@ -4,7 +4,15 @@
 // here. Tests exercise external behavior through this surface only — never
 // private helpers or storage format (see PRD/spec § Testing Decisions).
 
-export type { Category, IdFactory } from './types';
+export type {
+  Category,
+  CaptureSource,
+  Expense,
+  ExpenseInput,
+  IdFactory,
+} from './types';
+
+export type { LocalDay } from './day';
 
 export {
   DEFAULT_CATEGORY_SEEDS,
@@ -19,5 +27,19 @@ export {
   findCategory,
 } from './category';
 
+export type { DayGroup } from './expense';
+
+export {
+  ExpenseError,
+  addExpense,
+  spentOn,
+  groupByDay,
+  recentExpenses,
+} from './expense';
+
+export { toLocalDay, fromLocalDay, addDays } from './day';
+
+export { MINOR_UNITS_PER_MAJOR, minorToDecimalString } from './money';
+
 /** Semantic version of the core public API. */
-export const CORE_VERSION = '0.1.0';
+export const CORE_VERSION = '0.2.0';

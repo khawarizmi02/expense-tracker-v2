@@ -21,8 +21,8 @@ import {
   updateCategoryAppearance,
   type Category,
 } from '../core';
-import { EncryptedStore } from './encryptedStore';
 import { CategoryRepository } from './categoryRepository';
+import { useStore } from './storeContext';
 
 const makeId = () => Crypto.randomUUID();
 
@@ -40,32 +40,25 @@ interface CategoryContextValue {
 const CategoryContext = createContext<CategoryContextValue | null>(null);
 
 export function CategoryProvider({ children }: { children: React.ReactNode }) {
+  const { ready: storeReady, store } = useStore();
   const [categories, setCategories] = useState<Category[]>([]);
   const [ready, setReady] = useState(false);
   const repoRef = useRef<CategoryRepository | null>(null);
 
   useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      let initial: Category[];
-      try {
-        const store = await EncryptedStore.open();
-        const repo = new CategoryRepository(store);
-        repoRef.current = repo;
-        initial = repo.load(makeId);
-      } catch {
-        // Store unavailable — start from seeded defaults, unpersisted.
-        initial = seedDefaultCategories(makeId);
-      }
-      if (!cancelled) {
-        setCategories(initial);
-        setReady(true);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+    if (!storeReady) {
+      return;
+    }
+    if (store) {
+      const repo = new CategoryRepository(store);
+      repoRef.current = repo;
+      setCategories(repo.load(makeId));
+    } else {
+      // Store unavailable — start from seeded defaults, unpersisted.
+      setCategories(seedDefaultCategories(makeId));
+    }
+    setReady(true);
+  }, [storeReady, store]);
 
   // Persist whenever the list changes (after the initial load).
   const commit = (next: Category[]) => {

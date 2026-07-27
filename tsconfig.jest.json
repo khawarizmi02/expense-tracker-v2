@@ -10,5 +10,5 @@
     "types": ["jest", "node"],
     "isolatedModules": true
   },
-  "include": ["src/core/**/*.ts"]
+  "include": ["src/core/**/*.ts", "scripts/**/*.ts"]
 }
