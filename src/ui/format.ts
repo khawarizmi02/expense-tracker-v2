@@ -2,7 +2,7 @@
 // as `YYYY-MM-DD`; turning those into the strings a Malaysian user reads —
 // "RM 1,250.00", "Today", "Sat, 26 Jul" — is a UI concern and lives here.
 
-import { addDays, fromLocalDay, minorToDecimalString, type LocalDay } from '../core';
+import { MINOR_UNITS_PER_MAJOR, addDays, fromLocalDay, type LocalDay } from '../core';
 
 /** Kira's currency symbol. v1 is ringgit-only. */
 export const CURRENCY_SYMBOL = 'RM';
@@ -14,10 +14,10 @@ function groupThousands(digits: string): string {
 
 /** Format minor units for display, e.g. `125000` → `"RM 1,250.00"`. */
 export function formatMoney(minor: number): string {
-  const [major = '0', fraction = '00'] = minorToDecimalString(minor).split('.');
-  const negative = major.startsWith('-');
-  const grouped = groupThousands(negative ? major.slice(1) : major);
-  return `${negative ? '-' : ''}${CURRENCY_SYMBOL} ${grouped}.${fraction}`;
+  const absolute = Math.abs(minor);
+  const major = groupThousands(String(Math.floor(absolute / MINOR_UNITS_PER_MAJOR)));
+  const fraction = String(absolute % MINOR_UNITS_PER_MAJOR).padStart(2, '0');
+  return `${minor < 0 ? '-' : ''}${CURRENCY_SYMBOL} ${major}.${fraction}`;
 }
 
 /** Weekday names, Sunday first — the order `Date.getDay()` returns. */

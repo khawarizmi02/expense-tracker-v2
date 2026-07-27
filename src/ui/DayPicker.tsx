@@ -9,7 +9,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { addDays, fromLocalDay, toLocalDay, type LocalDay } from '../core';
 import { useTheme } from '../design/theme';
-import { MONTHS, WEEKDAYS } from './format';
+import { MONTHS, WEEKDAYS, formatDayHeading } from './format';
 
 const WEEKDAY_INITIALS = WEEKDAYS.map((name) => name.charAt(0));
 
@@ -141,16 +141,14 @@ export function DayPicker({ value, maxDay, onChange }: DayPickerProps) {
       </View>
 
       <View style={styles.shortcuts}>
-        {[
-          { label: 'Today', day: maxDay },
-          { label: 'Yesterday', day: addDays(maxDay, -1) },
-        ].map((shortcut) => (
+        {/* `formatDayHeading` owns the "Today"/"Yesterday" wording. */}
+        {[maxDay, addDays(maxDay, -1)].map((shortcutDay) => (
           <Pressable
-            key={shortcut.label}
+            key={shortcutDay}
             accessibilityRole="button"
             onPress={() => {
-              setMonth(fromLocalDay(shortcut.day));
-              onChange(shortcut.day);
+              setMonth(fromLocalDay(shortcutDay));
+              onChange(shortcutDay);
             }}
             style={[
               styles.shortcut,
@@ -164,7 +162,7 @@ export function DayPicker({ value, maxDay, onChange }: DayPickerProps) {
                 color: colors.textSecondary,
               }}
             >
-              {shortcut.label}
+              {formatDayHeading(shortcutDay, maxDay)}
             </Text>
           </Pressable>
         ))}

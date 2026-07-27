@@ -4,49 +4,88 @@
 // can be unit-tested without rasterizing anything.
 
 /**
- * Android's adaptive-icon safe zone: launchers mask the 108dp foreground down to
- * an inner 66dp circle/squircle/rounded square. Anything outside that circle may
- * be clipped, so the foreground glyph is scaled to fit within it.
+ * Android's adaptive-icon safe zone: of the 108dp foreground canvas, only the
+ * inner **66dp circle** is guaranteed visible under every launcher mask. Note
+ * this is a diameter, not an edge length — a glyph whose *height* is 66dp still
+ * pushes its corners outside the circle and gets clipped.
  */
 export const ANDROID_SAFE_ZONE_RATIO = 66 / 108;
 
-export interface MarkLayout {
-  /** Rendered width/height of the (square) mark, in pixels. */
-  markSize: number;
-  /** Left/top inset that centers the mark on the canvas, in pixels. */
-  offset: number;
+/** A glyph's dimensions in pixels. */
+export interface Size {
+  width: number;
+  height: number;
 }
 
-/**
- * Size the mark to `ratio` of a square `canvasSize` canvas and center it.
- *
- * The mark size is forced even so the two margins are exactly equal after
- * rounding — an odd size would leave the glyph a pixel off-center, which is
- * visible at favicon sizes.
- */
-export function centeredMarkLayout(canvasSize: number, ratio: number): MarkLayout {
+/** Where to composite a glyph so it lands centered on a square canvas. */
+export interface Placement {
+  left: number;
+  top: number;
+}
+
+function assertCanvas(canvasSize: number): void {
   if (!Number.isInteger(canvasSize) || canvasSize <= 0) {
     throw new Error(`canvasSize must be a positive integer, got ${canvasSize}`);
   }
-  if (!(ratio > 0) || ratio > 1) {
-    throw new Error(`ratio must be within (0, 1], got ${ratio}`);
-  }
+}
 
-  // Round down to the nearest size that shares the canvas's parity, so
-  // (canvasSize - markSize) is even and splits into two equal margins.
-  const scaled = Math.floor(canvasSize * ratio);
-  const markSize = scaled % 2 === canvasSize % 2 ? scaled : scaled - 1;
-  if (markSize <= 0) {
-    throw new Error(`canvasSize ${canvasSize} is too small for ratio ${ratio}`);
+function assertSize({ width, height }: Size): void {
+  if (!(width > 0) || !(height > 0)) {
+    throw new Error(`glyph must have positive dimensions, got ${width}x${height}`);
   }
+}
 
-  return { markSize, offset: (canvasSize - markSize) / 2 };
+function scaleBy(glyph: Size, factor: number): Size {
+  return {
+    width: Math.max(1, Math.round(glyph.width * factor)),
+    height: Math.max(1, Math.round(glyph.height * factor)),
+  };
 }
 
 /**
- * Lay out the Android adaptive-icon foreground: the mark centered within the
- * safe zone, with transparent bleed around it for the launcher's mask.
+ * Scale `glyph` to fit inside a square of `boxSize`, preserving aspect ratio.
+ * Only ever scales down to the box; a glyph already smaller is left alone so the
+ * rasterizer never upscales.
  */
-export function adaptiveIconLayout(canvasSize: number): MarkLayout {
-  return centeredMarkLayout(canvasSize, ANDROID_SAFE_ZONE_RATIO);
+export function fitWithinBox(glyph: Size, boxSize: number): Size {
+  assertSize(glyph);
+  if (!(boxSize > 0)) {
+    throw new Error(`boxSize must be positive, got ${boxSize}`);
+  }
+  return scaleBy(glyph, Math.min(boxSize / glyph.width, boxSize / glyph.height));
+}
+
+/**
+ * Scale `glyph` to fit inside a circle of `diameter`, preserving aspect ratio.
+ *
+ * The binding constraint is the glyph's **diagonal**, not its width or height:
+ * a rectangle inscribed in a circle touches it at the corners. This is what
+ * keeps the mark clear of a circular or squircle launcher mask.
+ */
+export function fitWithinCircle(glyph: Size, diameter: number): Size {
+  assertSize(glyph);
+  if (!(diameter > 0)) {
+    throw new Error(`diameter must be positive, got ${diameter}`);
+  }
+  const diagonal = Math.hypot(glyph.width, glyph.height);
+  return scaleBy(glyph, diameter / diagonal);
+}
+
+/**
+ * Scale `glyph` to sit inside the Android adaptive-icon safe zone of a
+ * `canvasSize` foreground.
+ */
+export function fitWithinSafeZone(glyph: Size, canvasSize: number): Size {
+  assertCanvas(canvasSize);
+  return fitWithinCircle(glyph, canvasSize * ANDROID_SAFE_ZONE_RATIO);
+}
+
+/** Where `glyph` goes to be centered on a `canvasSize` square canvas. */
+export function centerOn(glyph: Size, canvasSize: number): Placement {
+  assertCanvas(canvasSize);
+  assertSize(glyph);
+  return {
+    left: Math.round((canvasSize - glyph.width) / 2),
+    top: Math.round((canvasSize - glyph.height) / 2),
+  };
 }

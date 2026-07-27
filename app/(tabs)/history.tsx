@@ -11,7 +11,7 @@ import { useTheme } from '../../src/design/theme';
 import { useExpenses } from '../../src/store/expenseContext';
 
 export default function HistoryScreen() {
-  const { colors, spacing, radius, typography } = useTheme();
+  const { colors, spacing, typography } = useTheme();
   const { byDay, today } = useExpenses();
 
   return (

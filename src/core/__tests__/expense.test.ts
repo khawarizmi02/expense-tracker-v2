@@ -7,7 +7,6 @@ import {
   ExpenseError,
   addExpense,
   groupByDay,
-  minorToDecimalString,
   recentExpenses,
   spentOn,
   toLocalDay,
@@ -192,14 +191,5 @@ describe('toLocalDay', () => {
 
   it('zero-pads month and day', () => {
     expect(toLocalDay(new Date(2026, 0, 5))).toBe('2026-01-05');
-  });
-});
-
-describe('minorToDecimalString', () => {
-  it('renders minor units as a two-decimal amount', () => {
-    expect(minorToDecimalString(1250)).toBe('12.50');
-    expect(minorToDecimalString(5)).toBe('0.05');
-    expect(minorToDecimalString(0)).toBe('0.00');
-    expect(minorToDecimalString(100000)).toBe('1000.00');
   });
 });

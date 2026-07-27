@@ -39,7 +39,7 @@ export {
 
 export { toLocalDay, fromLocalDay, addDays } from './day';
 
-export { MINOR_UNITS_PER_MAJOR, minorToDecimalString } from './money';
+export { MINOR_UNITS_PER_MAJOR } from './money';
 
 /** Semantic version of the core public API. */
 export const CORE_VERSION = '0.2.0';

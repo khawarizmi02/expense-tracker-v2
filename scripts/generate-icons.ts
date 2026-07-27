@@ -10,7 +10,12 @@ import { readFileSync, mkdirSync } from 'node:fs';
 import path from 'node:path';
 import sharp from 'sharp';
 import { brandColors } from '../src/design/tokens';
-import { adaptiveIconLayout, centeredMarkLayout } from './iconGeometry';
+import {
+  centerOn,
+  fitWithinBox,
+  fitWithinSafeZone,
+  type Size,
+} from './iconGeometry';
 
 const ROOT = path.resolve(__dirname, '..');
 const SOURCE_SVG = path.join(ROOT, 'assets/brand/kira-mark.svg');
@@ -40,48 +45,45 @@ function tintedMark(color: string): Buffer {
   return Buffer.from(svg.replaceAll('currentColor', color), 'utf8');
 }
 
-interface RenderedMark {
+interface RenderedMark extends Size {
   data: Buffer;
-  width: number;
-  height: number;
 }
 
 /**
- * Render the glyph to fit inside a `boxSize` square, transparent around it.
+ * Rasterize the glyph, trimmed to its own bounds, at a scale chosen by `fit`.
  *
  * Two things matter here. The SVG is rasterized at a density derived from the
  * target size, so it is drawn at full resolution rather than rendered small and
- * scaled up (which softens the edges). And the result is trimmed to the glyph's
- * own bounds first, so `boxSize` sizes the *visible mark* — the source viewBox
- * carries padding of its own, and sizing by the viewBox would leave every glyph
- * a third smaller than asked for.
+ * scaled up (which softens the edges). And it is trimmed to the glyph's own ink
+ * *before* being sized — the source viewBox carries padding of its own, so
+ * sizing by the viewBox would leave every glyph a third smaller than asked for
+ * and, worse, make "fits the safe zone" a claim about padding rather than mark.
  *
- * The glyph is taller than it is wide, so the returned width and height differ;
- * callers center using the actual dimensions.
+ * The glyph is taller than it is wide, so `fit` receives its real proportions
+ * and the returned width and height differ.
  */
-async function renderMark(boxSize: number, color: string): Promise<RenderedMark> {
-  // Render generously (the glyph is ~60% of the viewBox, so ×2 leaves headroom)
-  // and let the resize below scale down, never up.
-  const density = Math.ceil((SVG_BASE_DPI * boxSize * 2) / SVG_NOMINAL_SIZE);
+async function renderMark(
+  canvasSize: number,
+  color: string,
+  fit: (glyph: Size) => Size,
+): Promise<RenderedMark> {
+  // Generous density (the glyph is ~60% of the viewBox, so ×2 leaves headroom);
+  // the resize below only ever scales down from it.
+  const density = Math.ceil((SVG_BASE_DPI * canvasSize * 2) / SVG_NOMINAL_SIZE);
 
-  const { data, info } = await sharp(tintedMark(color), { density })
+  const trimmed = await sharp(tintedMark(color), { density })
     .trim()
-    .resize(boxSize, boxSize, {
-      fit: 'inside',
-      background: { r: 0, g: 0, b: 0, alpha: 0 },
-    })
     .png()
     .toBuffer({ resolveWithObject: true });
 
-  return { data, width: info.width, height: info.height };
-}
+  const target = fit({ width: trimmed.info.width, height: trimmed.info.height });
 
-/** Where a rendered mark sits so it is centered on a `canvasSize` canvas. */
-function centerOn(canvasSize: number, mark: RenderedMark) {
-  return {
-    left: Math.round((canvasSize - mark.width) / 2),
-    top: Math.round((canvasSize - mark.height) / 2),
-  };
+  const data = await sharp(trimmed.data)
+    .resize(target.width, target.height, { fit: 'fill' })
+    .png()
+    .toBuffer();
+
+  return { data, ...target };
 }
 
 /**
@@ -90,8 +92,9 @@ function centerOn(canvasSize: number, mark: RenderedMark) {
  * masking, and pre-rounding here would double-round.
  */
 async function writeOpaqueIcon(file: string, canvasSize: number): Promise<void> {
-  const { markSize } = centeredMarkLayout(canvasSize, OPAQUE_GLYPH_RATIO);
-  const mark = await renderMark(markSize, MARK_WHITE);
+  const mark = await renderMark(canvasSize, MARK_WHITE, (glyph) =>
+    fitWithinBox(glyph, canvasSize * OPAQUE_GLYPH_RATIO),
+  );
 
   await sharp({
     create: {
@@ -101,7 +104,7 @@ async function writeOpaqueIcon(file: string, canvasSize: number): Promise<void> 
       background: brandColors.primary,
     },
   })
-    .composite([{ input: mark.data, ...centerOn(canvasSize, mark) }])
+    .composite([{ input: mark.data, ...centerOn(mark, canvasSize) }])
     .flatten({ background: brandColors.primary })
     // Drop the alpha channel outright: iOS rejects app icons carrying one.
     .removeAlpha()
@@ -115,8 +118,9 @@ async function writeOpaqueIcon(file: string, canvasSize: number): Promise<void> 
  * it. The blue behind it comes from `adaptiveIcon.backgroundColor` in app.json.
  */
 async function writeAdaptiveIcon(file: string, canvasSize: number): Promise<void> {
-  const { markSize } = adaptiveIconLayout(canvasSize);
-  const mark = await renderMark(markSize, MARK_WHITE);
+  const mark = await renderMark(canvasSize, MARK_WHITE, (glyph) =>
+    fitWithinSafeZone(glyph, canvasSize),
+  );
 
   await sharp({
     create: {
@@ -126,7 +130,7 @@ async function writeAdaptiveIcon(file: string, canvasSize: number): Promise<void
       background: { r: 0, g: 0, b: 0, alpha: 0 },
     },
   })
-    .composite([{ input: mark.data, ...centerOn(canvasSize, mark) }])
+    .composite([{ input: mark.data, ...centerOn(mark, canvasSize) }])
     .png()
     .toFile(path.join(OUT_DIR, file));
 }

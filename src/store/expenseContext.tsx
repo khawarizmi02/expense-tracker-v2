@@ -10,14 +10,12 @@ import React, {
   useRef,
   useState,
 } from 'react';
-import { AppState } from 'react-native';
 import * as Crypto from 'expo-crypto';
 import {
   addExpense,
   groupByDay,
   recentExpenses,
   spentOn,
-  toLocalDay,
   type DayGroup,
   type Expense,
   type ExpenseInput,
@@ -25,6 +23,7 @@ import {
 } from '../core';
 import { ExpenseRepository } from './expenseRepository';
 import { useStore } from './storeContext';
+import { useToday } from './useToday';
 
 const makeId = () => Crypto.randomUUID();
 
@@ -47,44 +46,6 @@ interface ExpenseContextValue {
 }
 
 const ExpenseContext = createContext<ExpenseContextValue | null>(null);
-
-/**
- * The current device-local day, kept current as the day actually turns over.
- *
- * "Today" is a clock reading, not derived state, and the boundary is local
- * midnight (CONTEXT.md § Day) — so an app left open overnight must not keep
- * showing yesterday's total under "spent today", nor default QuickAdd to
- * yesterday. Two triggers cover it: a timer armed for the next local midnight,
- * and a re-read whenever the app returns to the foreground (background timers
- * don't fire reliably, and the phone's timezone may have changed mid-flight).
- */
-function useToday(): LocalDay {
-  const [today, setToday] = useState(() => toLocalDay(new Date()));
-
-  useEffect(() => {
-    const sync = () => setToday(toLocalDay(new Date()));
-
-    const now = new Date();
-    const midnight = new Date(now);
-    midnight.setHours(24, 0, 0, 0);
-    // +1s of slack so the timer never fires a hair before the boundary.
-    const timer = setTimeout(sync, midnight.getTime() - now.getTime() + 1000);
-
-    const subscription = AppState.addEventListener('change', (state) => {
-      if (state === 'active') {
-        sync();
-      }
-    });
-
-    return () => {
-      clearTimeout(timer);
-      subscription.remove();
-    };
-    // Re-arms for the following midnight each time the day changes.
-  }, [today]);
-
-  return today;
-}
 
 export function ExpenseProvider({ children }: { children: React.ReactNode }) {
   const { ready: storeReady, store } = useStore();
