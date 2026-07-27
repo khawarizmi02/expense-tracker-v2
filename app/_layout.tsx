@@ -13,7 +13,9 @@ import {
   Inter_700Bold,
 } from '@expo-google-fonts/inter';
 import { ThemeProvider, useTheme } from '../src/design/theme';
+import { StoreProvider } from '../src/store/storeContext';
 import { CategoryProvider } from '../src/store/categoryContext';
+import { ExpenseProvider } from '../src/store/expenseContext';
 
 function RootStack() {
   const { scheme } = useTheme();
@@ -47,9 +49,13 @@ export default function RootLayout() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
         <ThemeProvider>
-          <CategoryProvider>
-            <RootStack />
-          </CategoryProvider>
+          <StoreProvider>
+            <CategoryProvider>
+              <ExpenseProvider>
+                <RootStack />
+              </ExpenseProvider>
+            </CategoryProvider>
+          </StoreProvider>
         </ThemeProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>

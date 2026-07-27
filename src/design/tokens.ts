@@ -85,6 +85,29 @@ export const categoryColors = {
 
 export type CategoryColorToken = keyof typeof categoryColors;
 
+/**
+ * Fixed brand colors of the Kira mark (see `assets/brand/kira-mark.svg`).
+ *
+ * Deliberately outside `Palette` and `categoryColors`: these are the identity's
+ * own colors, not themed UI and not user-selectable category colors, so they
+ * never change with OS light/dark mode. `primary` is the blue the icon, adaptive
+ * icon background, and splash sit on; `sky`/`purple`/`pink` are the three
+ * sticker bars. The icon-generation script and the brand components both read
+ * from here rather than repeating hex literals.
+ *
+ * One copy lives outside this file and can't: `app.json` repeats `primary` for
+ * `android.adaptiveIcon.backgroundColor` and the splash plugin, because static
+ * JSON can't import a token. Change `primary` and you must change those too.
+ *
+ * Intentionally distinct from the UI accent (`Palette.accent`, purple).
+ */
+export const brandColors = {
+  primary: '#0075de',
+  sky: '#62aef0',
+  purple: '#d6b6f6',
+  pink: '#ff64c8',
+} as const;
+
 interface Palette {
   /** Two-stop background gradient — the "subtle gradient" signature. */
   gradient: readonly [string, string];
