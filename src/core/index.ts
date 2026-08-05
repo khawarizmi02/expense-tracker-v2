@@ -7,6 +7,7 @@
 export type {
   Category,
   CaptureSource,
+  Cycle,
   Expense,
   ExpenseInput,
   IdFactory,
@@ -33,13 +34,26 @@ export {
   ExpenseError,
   addExpense,
   spentOn,
+  spentInCycle,
   groupByDay,
   recentExpenses,
 } from './expense';
+
+export {
+  DEFAULT_CYCLE_START_DAY,
+  CycleError,
+  isValidCycleStartDay,
+  clampsInShortMonths,
+  currentCycle,
+  containsDay,
+  cycleLength,
+  daysElapsed,
+  daysRemaining,
+} from './cycle';
 
 export { toLocalDay, fromLocalDay, addDays } from './day';
 
 export { MINOR_UNITS_PER_MAJOR } from './money';
 
 /** Semantic version of the core public API. */
-export const CORE_VERSION = '0.2.0';
+export const CORE_VERSION = '0.3.0';

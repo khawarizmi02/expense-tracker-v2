@@ -15,7 +15,9 @@ import {
   addExpense,
   groupByDay,
   recentExpenses,
+  spentInCycle,
   spentOn,
+  type Cycle,
   type DayGroup,
   type Expense,
   type ExpenseInput,
@@ -37,6 +39,12 @@ interface ExpenseContextValue {
   log: (input: ExpenseInput) => Expense;
   /** Total spent on a day, in minor units. */
   spentOn: (day: LocalDay) => number;
+  /**
+   * Total spent inside a Cycle, in minor units. The Cycle is passed in rather
+   * than read here so this provider stays independent of the settings that
+   * anchor it.
+   */
+  spentInCycle: (cycle: Cycle) => number;
   /** The day-grouped history, newest day first, with per-day totals. */
   byDay: DayGroup[];
   /** The most recently logged expenses, newest first. */
@@ -84,6 +92,7 @@ export function ExpenseProvider({ children }: { children: React.ReactNode }) {
         return next[next.length - 1] as Expense;
       },
       spentOn: (day) => spentOn(expenses, day),
+      spentInCycle: (cycle) => spentInCycle(expenses, cycle),
       byDay: groupByDay(expenses),
       recent: recentExpenses(expenses, RECENT_LIMIT),
       today,

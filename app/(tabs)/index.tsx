@@ -1,21 +1,26 @@
-// Home (T3): what was spent today, and what was logged most recently.
+// Home (T3, T4): what was spent this Cycle and today, and what was logged most
+// recently.
 //
-// The streak and budget rings arrive with T5/T11; this screen is deliberately
-// just the two things T3 promises.
+// The headline number is Cycle-scoped, never a calendar month (ADR-0001): it
+// spans the user's payday-to-payday window and is labelled with that window's
+// dates and the days left in it. The streak and budget rings arrive with T5/T11.
 
 import React from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { GradientBackground } from '../../src/ui/GradientBackground';
 import { EmptyExpenses, ExpenseList } from '../../src/ui/ExpenseList';
-import { formatMoney } from '../../src/ui/format';
+import { formatCycleRange, formatDaysRemaining, formatMoney } from '../../src/ui/format';
 import { useTheme } from '../../src/design/theme';
 import { useExpenses } from '../../src/store/expenseContext';
+import { useSettings } from '../../src/store/settingsContext';
 
 export default function HomeScreen() {
   const { colors, spacing, radius, typography, elevation } = useTheme();
-  const { spentOn, recent, today } = useExpenses();
+  const { spentOn, spentInCycle, recent, today } = useExpenses();
+  const { cycle, daysRemaining } = useSettings();
   const spentToday = spentOn(today);
+  const spentThisCycle = spentInCycle(cycle);
 
   return (
     <GradientBackground>
@@ -38,18 +43,30 @@ export default function HomeScreen() {
               },
             ]}
           >
+            <View style={styles.cycleHeading}>
+              <Text
+                style={{
+                  fontFamily: typography.fontFamily.medium,
+                  fontSize: typography.size.caption,
+                  letterSpacing: 1,
+                  color: colors.textMuted,
+                }}
+              >
+                THIS CYCLE
+              </Text>
+              <Text
+                accessibilityLabel={formatDaysRemaining(daysRemaining)}
+                style={{
+                  fontFamily: typography.fontFamily.medium,
+                  fontSize: typography.size.caption,
+                  color: colors.textSecondary,
+                }}
+              >
+                {formatDaysRemaining(daysRemaining)}
+              </Text>
+            </View>
             <Text
-              style={{
-                fontFamily: typography.fontFamily.medium,
-                fontSize: typography.size.caption,
-                letterSpacing: 1,
-                color: colors.textMuted,
-              }}
-            >
-              SPENT TODAY
-            </Text>
-            <Text
-              accessibilityLabel={`Spent today ${formatMoney(spentToday)}`}
+              accessibilityLabel={`Spent this Cycle ${formatMoney(spentThisCycle)}`}
               style={{
                 marginTop: spacing.xs,
                 fontFamily: typography.fontFamily.bold,
@@ -58,8 +75,44 @@ export default function HomeScreen() {
                 color: colors.textPrimary,
               }}
             >
-              {formatMoney(spentToday)}
+              {formatMoney(spentThisCycle)}
             </Text>
+            <Text
+              style={{
+                fontFamily: typography.fontFamily.regular,
+                fontSize: typography.size.caption,
+                color: colors.textMuted,
+              }}
+            >
+              {formatCycleRange(cycle)}
+            </Text>
+
+            <View
+              style={[
+                styles.todayRow,
+                { marginTop: spacing.lg, paddingTop: spacing.md, borderTopColor: colors.border },
+              ]}
+            >
+              <Text
+                style={{
+                  fontFamily: typography.fontFamily.regular,
+                  fontSize: typography.size.body,
+                  color: colors.textSecondary,
+                }}
+              >
+                Spent today
+              </Text>
+              <Text
+                accessibilityLabel={`Spent today ${formatMoney(spentToday)}`}
+                style={{
+                  fontFamily: typography.fontFamily.semibold,
+                  fontSize: typography.size.body,
+                  color: colors.textPrimary,
+                }}
+              >
+                {formatMoney(spentToday)}
+              </Text>
+            </View>
           </View>
 
           <Text
@@ -88,4 +141,15 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   fill: { flex: 1 },
   card: { width: '100%' },
+  cycleHeading: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  todayRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderTopWidth: StyleSheet.hairlineWidth,
+  },
 });
