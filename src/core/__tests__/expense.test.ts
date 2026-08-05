@@ -6,6 +6,8 @@
 import {
   ExpenseError,
   addExpense,
+  currentCycle,
+  expensesInCycleByCategory,
   groupByDay,
   recentExpenses,
   spentOn,
@@ -178,6 +180,33 @@ describe('recentExpenses', () => {
   it('returns nothing for a limit of zero or less', () => {
     expect(recentExpenses(expenses, 0)).toEqual([]);
     expect(recentExpenses(expenses, -1)).toEqual([]);
+  });
+});
+
+describe('expensesInCycleByCategory', () => {
+  const cycle = currentCycle(25, '2026-08-05'); // 25 Jul – 24 Aug.
+  const ids = makeCounterIds('e');
+  let expenses: Expense[] = [];
+  expenses = addExpense(expenses, { ...BASE, day: '2026-07-24' }, ids); // e1, before
+  expenses = addExpense(expenses, { ...BASE, day: '2026-07-25' }, ids); // e2
+  expenses = addExpense(expenses, { ...BASE, day: '2026-08-05' }, ids); // e3
+  expenses = addExpense(expenses, { ...BASE, categoryId: 'cat-transport' }, ids); // e4
+  expenses = addExpense(expenses, { ...BASE, day: '2026-08-25' }, ids); // e5, after
+
+  it('lists only that category’s expenses inside the Cycle', () => {
+    expect(expensesInCycleByCategory(expenses, cycle, 'cat-dining').map((e) => e.id)).toEqual([
+      'e3',
+      'e2',
+    ]);
+  });
+
+  it('lists them most recently logged first', () => {
+    const [first] = expensesInCycleByCategory(expenses, cycle, 'cat-dining');
+    expect(first?.id).toBe('e3');
+  });
+
+  it('is empty for a category with nothing in the Cycle', () => {
+    expect(expensesInCycleByCategory(expenses, cycle, 'cat-bills')).toEqual([]);
   });
 });
 

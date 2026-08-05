@@ -6,6 +6,8 @@ import {
   MINOR_UNITS_PER_MAJOR,
   addDays,
   fromLocalDay,
+  safePerDay,
+  type CategoryBudget,
   type Cycle,
   type LocalDay,
 } from '../core';
@@ -84,6 +86,38 @@ export function formatOrdinalDay(day: number): string {
   const teen = day % 100 >= 11 && day % 100 <= 13;
   const suffix = teen ? 'th' : ({ 1: 'st', 2: 'nd', 3: 'rd' }[day % 10] ?? 'th');
   return `${day}${suffix}`;
+}
+
+/**
+ * Spend against a cap as a percent, e.g. `"115%"`.
+ *
+ * Rounded only here, at the very edge: the core keeps the exact figure so a bar
+ * and a label never disagree, and nothing is clamped — a category 15% past its
+ * cap says so.
+ */
+export function formatPercent(percent: number): string {
+  return `${Math.round(percent)}%`;
+}
+
+/**
+ * The one-line pace read on a category: what can still be spent per day, or how
+ * far past the cap it already is.
+ *
+ * Written here rather than in `core` because it is copy — the numbers behind it
+ * (`remainingMinor`, `safePerDay`) are the domain's.
+ */
+export function formatPaceSentence(view: CategoryBudget, daysRemaining: number): string {
+  if (!view.capped) {
+    return 'Tracked only — no cap set.';
+  }
+  if (view.overMinor > 0) {
+    return `${formatMoney(view.overMinor)} over the cap.`;
+  }
+  const perDay = safePerDay(view.remainingMinor ?? 0, daysRemaining);
+  if (perDay === 0) {
+    return 'Nothing left to spend this Cycle.';
+  }
+  return `${formatMoney(perDay)} a day keeps you under, ${formatDaysRemaining(daysRemaining)}.`;
 }
 
 /**

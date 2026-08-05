@@ -13,6 +13,7 @@ import React, {
 import * as Crypto from 'expo-crypto';
 import {
   addExpense,
+  expensesInCycleByCategory,
   groupByDay,
   recentExpenses,
   spentInCycle,
@@ -45,6 +46,11 @@ interface ExpenseContextValue {
    * anchor it.
    */
   spentInCycle: (cycle: Cycle) => number;
+  /**
+   * One category's expenses inside a Cycle, most recently logged first — the
+   * entries the category detail overlay lists.
+   */
+  inCycleByCategory: (cycle: Cycle, categoryId: string) => Expense[];
   /** The day-grouped history, newest day first, with per-day totals. */
   byDay: DayGroup[];
   /** The most recently logged expenses, newest first. */
@@ -93,6 +99,8 @@ export function ExpenseProvider({ children }: { children: React.ReactNode }) {
       },
       spentOn: (day) => spentOn(expenses, day),
       spentInCycle: (cycle) => spentInCycle(expenses, cycle),
+      inCycleByCategory: (cycle, categoryId) =>
+        expensesInCycleByCategory(expenses, cycle, categoryId),
       byDay: groupByDay(expenses),
       recent: recentExpenses(expenses, RECENT_LIMIT),
       today,

@@ -16,6 +16,7 @@ import { ThemeProvider, useTheme } from '../src/design/theme';
 import { StoreProvider } from '../src/store/storeContext';
 import { CategoryProvider } from '../src/store/categoryContext';
 import { ExpenseProvider } from '../src/store/expenseContext';
+import { BudgetProvider } from '../src/store/budgetContext';
 import { SettingsProvider, useSettings } from '../src/store/settingsContext';
 
 /**
@@ -65,6 +66,12 @@ function RootStack() {
           name="quick-add"
           options={{ presentation: 'modal' }}
         />
+        {/* Category detail is an overlay over whichever screen opened it, so a
+            user checking a budget doesn't lose their place. */}
+        <Stack.Screen
+          name="category/[id]"
+          options={{ presentation: 'modal' }}
+        />
       </Stack>
     </>
   );
@@ -90,7 +97,10 @@ export default function RootLayout() {
             <SettingsProvider>
               <CategoryProvider>
                 <ExpenseProvider>
-                  <RootStack />
+                  {/* Budgets derive from all three above, so they nest last. */}
+                  <BudgetProvider>
+                    <RootStack />
+                  </BudgetProvider>
                 </ExpenseProvider>
               </CategoryProvider>
             </SettingsProvider>

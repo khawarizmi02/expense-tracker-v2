@@ -91,6 +91,36 @@ export function spentInCycle(expenses: readonly Expense[], cycle: Cycle): number
 }
 
 /**
+ * Total spent against one category inside a Cycle, in minor units — the number
+ * every Budget bar, percent and category total is measured from.
+ */
+export function spentInCycleByCategory(
+  expenses: readonly Expense[],
+  cycle: Cycle,
+  categoryId: string,
+): number {
+  return expenses.reduce(
+    (total, e) =>
+      e.categoryId === categoryId && containsDay(cycle, e.day) ? total + e.amountMinor : total,
+    0,
+  );
+}
+
+/**
+ * One category's expenses inside a Cycle, most recently logged first — the
+ * entries the category detail overlay lists.
+ */
+export function expensesInCycleByCategory(
+  expenses: readonly Expense[],
+  cycle: Cycle,
+  categoryId: string,
+): Expense[] {
+  return expenses
+    .filter((e) => e.categoryId === categoryId && containsDay(cycle, e.day))
+    .reverse();
+}
+
+/**
  * Group expenses into days with per-day totals, newest day first — History's
  * shape. Days are ordered by calendar date rather than capture order so a
  * back-dated expense lands in its own day rather than at the top of the list.
