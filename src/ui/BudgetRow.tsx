@@ -13,42 +13,37 @@ import { useTheme, type Theme } from '../design/theme';
 import { ioniconFor } from './categoryIcon';
 import { formatMoney, formatPercent } from './format';
 
-/** The 80% and 100% marks the app warns at (spec § Alert), as a color cue. */
-const WARNING_PERCENT = 80;
-
 /**
- * The color a bar and its percent read in: calm below 80% of the cap, warning as
- * it approaches, danger once past it. The same two thresholds the push Alerts
- * use (T7), so the screen and the notification never disagree.
+ * The color a bar and its percent read in: calm within the cap, danger once
+ * past it.
+ *
+ * Only the one threshold, because only "over the cap" is a fact T5 knows. The
+ * 80% warning belongs to the Alert rules and arrives with them (spec § Alert) —
+ * inventing it here would put the same number in two places.
  */
 export function budgetTone(colors: Theme['colors'], percent: number): string {
-  if (percent >= 100) {
-    return colors.danger;
-  }
-  if (percent >= WARNING_PERCENT) {
-    return colors.warning;
-  }
-  return colors.success;
+  return percent >= 100 ? colors.danger : colors.success;
 }
 
 /**
  * The filled track of a capped category's bar. Also used on its own by the
  * category detail overlay, which prints its own numbers around it.
  */
-export function BudgetBar({ percent, tone }: { percent: number; tone?: string }) {
+export function BudgetBar({ percent }: { percent: number }) {
   const { colors, radius } = useTheme();
-  const color = tone ?? budgetTone(colors, percent);
-  // The *width* clamps at full — a bar can't overflow its track — while the
-  // label above it still prints the real percent.
+  // The *width* clamps at full — a bar can't overflow its track — while every
+  // number printed around it still says what was really spent.
   const filled = Math.min(percent, 100);
   return (
-    <View
-      style={[styles.track, { backgroundColor: colors.border, borderRadius: radius.pill }]}
-    >
+    <View style={[styles.track, { backgroundColor: colors.border, borderRadius: radius.pill }]}>
       <View
         style={[
           styles.fill,
-          { width: `${filled}%`, backgroundColor: color, borderRadius: radius.pill },
+          {
+            width: `${filled}%`,
+            backgroundColor: budgetTone(colors, percent),
+            borderRadius: radius.pill,
+          },
         ]}
       />
     </View>
@@ -63,15 +58,14 @@ export function BudgetRow({
   onPress?: () => void;
 }) {
   const { colors, spacing, radius, typography, categoryColor } = useTheme();
-  const { category, capped, spentMinor, capMinor, percent, overMinor } = view;
-  const tone = budgetTone(colors, percent);
+  const { category } = view;
 
-  const amounts = capped
-    ? `${formatMoney(spentMinor)} of ${formatMoney(capMinor ?? 0)}`
-    : formatMoney(spentMinor);
-  const accessibilityLabel = capped
-    ? `${category.name}, ${amounts}, ${formatPercent(percent)}` +
-      (overMinor > 0 ? `, ${formatMoney(overMinor)} over` : '')
+  const amounts = view.capped
+    ? `${formatMoney(view.spentMinor)} of ${formatMoney(view.capMinor)}`
+    : formatMoney(view.spentMinor);
+  const accessibilityLabel = view.capped
+    ? `${category.name}, ${amounts}, ${formatPercent(view.percent)}` +
+      (view.overMinor > 0 ? `, ${formatMoney(view.overMinor)} over` : '')
     : `${category.name}, ${amounts}, tracked only`;
 
   return (
@@ -113,29 +107,29 @@ export function BudgetRow({
         </Text>
       </View>
 
-      {capped && (
+      {view.capped && (
         <View style={{ marginTop: spacing.xs }}>
-          <BudgetBar percent={percent} tone={tone} />
+          <BudgetBar percent={view.percent} />
           <View style={[styles.footer, { marginTop: spacing.xs }]}>
             <Text
               style={{
                 fontFamily: typography.fontFamily.medium,
                 fontSize: typography.size.caption,
-                color: tone,
+                color: budgetTone(colors, view.percent),
               }}
             >
-              {formatPercent(percent)}
+              {formatPercent(view.percent)}
             </Text>
             <Text
               style={{
                 fontFamily: typography.fontFamily.regular,
                 fontSize: typography.size.caption,
-                color: overMinor > 0 ? colors.danger : colors.textMuted,
+                color: view.overMinor > 0 ? colors.danger : colors.textMuted,
               }}
             >
-              {overMinor > 0
-                ? `${formatMoney(overMinor)} over`
-                : `${formatMoney(view.remainingMinor ?? 0)} left`}
+              {view.overMinor > 0
+                ? `${formatMoney(view.overMinor)} over`
+                : `${formatMoney(view.remainingMinor)} left`}
             </Text>
           </View>
         </View>

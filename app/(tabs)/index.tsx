@@ -9,9 +9,8 @@
 import React from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
 import { GradientBackground } from '../../src/ui/GradientBackground';
-import { BudgetRow } from '../../src/ui/BudgetRow';
+import { BudgetList } from '../../src/ui/BudgetList';
 import { EmptyExpenses, ExpenseList } from '../../src/ui/ExpenseList';
 import { formatCycleRange, formatDaysRemaining, formatMoney } from '../../src/ui/format';
 import { useTheme } from '../../src/design/theme';
@@ -21,7 +20,6 @@ import { useSettings } from '../../src/store/settingsContext';
 
 export default function HomeScreen() {
   const { colors, spacing, radius, typography, elevation } = useTheme();
-  const router = useRouter();
   const { spentOn, spentInCycle, recent, today } = useExpenses();
   const { cycle, daysRemaining } = useSettings();
   const { top } = useBudgets();
@@ -134,27 +132,7 @@ export default function HomeScreen() {
               >
                 Top budgets
               </Text>
-              <View
-                style={{
-                  backgroundColor: colors.surface,
-                  borderRadius: radius.lg,
-                  paddingHorizontal: spacing.md,
-                  paddingVertical: spacing.xs,
-                }}
-              >
-                {top.map((view) => (
-                  <BudgetRow
-                    key={view.category.id}
-                    view={view}
-                    onPress={() =>
-                      router.push({
-                        pathname: '/category/[id]',
-                        params: { id: view.category.id },
-                      })
-                    }
-                  />
-                ))}
-              </View>
+              <BudgetList views={top} />
             </>
           )}
 

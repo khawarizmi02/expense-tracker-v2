@@ -18,35 +18,48 @@ import type { Budget, Category, Cycle, Expense } from './types';
 
 export class BudgetError extends Error {}
 
-/**
- * One category's position this Cycle, as every budget surface renders it: the
- * Home bars, the Insights list, and the category detail overlay.
- *
- * Both shapes live in one type because the dashboard has to draw *either* from
- * the same list — `capped` says which: a capped category shows a bar against
- * `capMinor`, a tracked-only one shows `spentMinor` alone.
- */
-export interface CategoryBudget {
+/** What both shapes of a category's Cycle position have in common. */
+interface CategoryBudgetBase {
   /** The category itself, so callers render a row without a second lookup. */
   readonly category: Category;
   /** Spent against this category inside the Cycle, in minor units. */
   readonly spentMinor: number;
-  /** The cap in minor units, or `null` when the category is tracked-only. */
-  readonly capMinor: number | null;
-  /** True when a Budget is set — i.e. this category has a bar and a limit. */
-  readonly capped: boolean;
+}
+
+/** A category with a Budget: it has a limit, so it has a bar and a percent. */
+export interface CappedCategoryBudget extends CategoryBudgetBase {
+  readonly capped: true;
+  /** The cap for this Cycle, in minor units. */
+  readonly capMinor: number;
   /**
-   * Spend as a percent of the cap; `0` when tracked-only. Deliberately
-   * unrounded and **unclamped**: 115 means 15% past the limit, and hiding that
-   * behind a hard 100 would be the one moment the dashboard lies. Callers clamp
-   * for the *width* of a bar, never for the number they print.
+   * Spend as a percent of the cap. Deliberately unrounded and **unclamped**:
+   * 115 means 15% past the limit, and hiding that behind a hard 100 would be the
+   * one moment the dashboard lies. Callers clamp for the *width* of a bar, never
+   * for the number they print.
    */
   readonly percent: number;
-  /** Cap minus spend; negative once over. `null` when tracked-only. */
-  readonly remainingMinor: number | null;
-  /** How far past the cap, in minor units; `0` when within it or tracked-only. */
+  /** Cap minus spend; negative once over. */
+  readonly remainingMinor: number;
+  /** How far past the cap, in minor units; `0` while still within it. */
   readonly overMinor: number;
 }
+
+/** A category with no Budget: it collects spend, against nothing. */
+export interface TrackedOnlyCategoryBudget extends CategoryBudgetBase {
+  readonly capped: false;
+}
+
+/**
+ * One category's position this Cycle, as every budget surface renders it: the
+ * Home bars, the Insights list, and the category detail overlay.
+ *
+ * A union rather than one type with nullable caps, because the two shapes are
+ * genuinely different things (CONTEXT.md § Budget): a *capped* category has a
+ * cap, a percent and a bar; a *tracked-only* one has a total and nothing to
+ * measure it against. Narrowing on `capped` means no caller can reach for a
+ * percent that was never there.
+ */
+export type CategoryBudget = CappedCategoryBudget | TrackedOnlyCategoryBudget;
 
 /** The whole Cycle's position: the Insights ring plus its pace stats. */
 export interface BudgetSummary {
@@ -54,15 +67,16 @@ export interface BudgetSummary {
   readonly hasCaps: boolean;
   /** Every cap added together, in minor units. The ring's denominator. */
   readonly totalCapMinor: number;
-  /** Spend against capped categories only. The ring's numerator. */
-  readonly cappedSpentMinor: number;
   /**
-   * Spend across *all* active categories this Cycle, tracked-only included.
-   * Kept apart from the ring: tracked-only money is real money out, but it has
-   * no cap to sit against, so counting it in the ring would compare a total
-   * against a limit that never covered it.
+   * Spend against capped categories only — the ring's numerator.
+   *
+   * Tracked-only money is deliberately absent: it is real money out, but it has
+   * no cap to sit against, so counting it here would measure a total against a
+   * limit that never covered it. The Cycle's *whole* spend is `spentInCycle`,
+   * which every screen shares — this type does not restate it, so the two
+   * figures can never drift apart.
    */
-  readonly totalSpentMinor: number;
+  readonly cappedSpentMinor: number;
   /** Capped spend as a percent of the total cap; unrounded and unclamped. */
   readonly percent: number;
   /** Total cap minus capped spend; negative once over. */
@@ -157,7 +171,7 @@ export function safePerDay(remainingMinor: number, daysRemaining: number): numbe
 }
 
 /** One category's Cycle position, capped or tracked-only. */
-function viewFor(
+function categoryBudgetFor(
   category: Category,
   budgets: readonly Budget[],
   expenses: readonly Expense[],
@@ -167,15 +181,7 @@ function viewFor(
   const budget = findBudget(budgets, category.id);
 
   if (!budget) {
-    return {
-      category,
-      spentMinor,
-      capMinor: null,
-      capped: false,
-      percent: 0,
-      remainingMinor: null,
-      overMinor: 0,
-    };
+    return { category, spentMinor, capped: false };
   }
 
   const remainingMinor = budget.capMinor - spentMinor;
@@ -204,7 +210,7 @@ export function categoryBudgets(
   cycle: Cycle,
 ): CategoryBudget[] {
   return activeCategories(categories).map((category) =>
-    viewFor(category, budgets, expenses, cycle),
+    categoryBudgetFor(category, budgets, expenses, cycle),
   );
 }
 
@@ -217,8 +223,8 @@ export function budgetSummary(
   cycle: Cycle,
   today: LocalDay,
 ): BudgetSummary {
-  const capped = views.filter((v) => v.capped);
-  const totalCapMinor = capped.reduce((total, v) => total + (v.capMinor ?? 0), 0);
+  const capped = views.filter((v): v is CappedCategoryBudget => v.capped);
+  const totalCapMinor = capped.reduce((total, v) => total + v.capMinor, 0);
   const cappedSpentMinor = capped.reduce((total, v) => total + v.spentMinor, 0);
   const remainingMinor = totalCapMinor - cappedSpentMinor;
   const daysRemaining = cycleDaysRemaining(cycle, today);
@@ -227,7 +233,6 @@ export function budgetSummary(
     hasCaps: capped.length > 0,
     totalCapMinor,
     cappedSpentMinor,
-    totalSpentMinor: views.reduce((total, v) => total + v.spentMinor, 0),
     // With nothing capped every figure below is zero on its own: no caps, no
     // spend against them, nothing left over and nothing to pace.
     percent: percentOf(cappedSpentMinor, totalCapMinor),

@@ -16,6 +16,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { MAX_AMOUNT_MINOR } from '../src/core';
 import { GradientBackground } from '../src/ui/GradientBackground';
 import { DayPicker } from '../src/ui/DayPicker';
 import { ioniconFor } from '../src/ui/categoryIcon';
@@ -24,12 +25,9 @@ import { useTheme } from '../src/design/theme';
 import { useCategories } from '../src/store/categoryContext';
 import { useExpenses } from '../src/store/expenseContext';
 
-/**
- * Keypad digits accumulate as minor units, so RM 99,999.99 is the ceiling.
- * Capping input beats validating it after the fact: the extra key simply
- * doesn't register.
- */
-const MAX_AMOUNT_MINOR = 9_999_999;
+// Keypad digits accumulate as minor units up to the shared MAX_AMOUNT_MINOR
+// ceiling (RM 99,999.99). Capping input beats validating it after the fact: the
+// extra key simply doesn't register.
 
 /** The keypad, row-major. `00` is the shortcut for whole-ringgit amounts. */
 const KEYS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '00', '0', 'backspace'] as const;

@@ -20,12 +20,24 @@ function groupThousands(digits: string): string {
   return digits.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
 }
 
-/** Format minor units for display, e.g. `125000` → `"RM 1,250.00"`. */
-export function formatMoney(minor: number): string {
+/**
+ * Format minor units without the currency symbol, e.g. `125000` → `"1,250.00"`
+ * — for fields that print `RM` themselves, beside the number being typed.
+ *
+ * Integer arithmetic throughout: the major and minor halves are split with
+ * `Math.floor` and `%`, never by dividing into a float (ADR-0006).
+ */
+export function formatAmount(minor: number): string {
   const absolute = Math.abs(minor);
   const major = groupThousands(String(Math.floor(absolute / MINOR_UNITS_PER_MAJOR)));
   const fraction = String(absolute % MINOR_UNITS_PER_MAJOR).padStart(2, '0');
-  return `${minor < 0 ? '-' : ''}${CURRENCY_SYMBOL} ${major}.${fraction}`;
+  return `${minor < 0 ? '-' : ''}${major}.${fraction}`;
+}
+
+/** Format minor units for display, e.g. `125000` → `"RM 1,250.00"`. */
+export function formatMoney(minor: number): string {
+  // The sign leads the symbol — "-RM 12.50", the way a statement reads.
+  return `${minor < 0 ? '-' : ''}${CURRENCY_SYMBOL} ${formatAmount(Math.abs(minor))}`;
 }
 
 /** Weekday names, Sunday first — the order `Date.getDay()` returns. */
@@ -113,7 +125,7 @@ export function formatPaceSentence(view: CategoryBudget, daysRemaining: number):
   if (view.overMinor > 0) {
     return `${formatMoney(view.overMinor)} over the cap.`;
   }
-  const perDay = safePerDay(view.remainingMinor ?? 0, daysRemaining);
+  const perDay = safePerDay(view.remainingMinor, daysRemaining);
   if (perDay === 0) {
     return 'Nothing left to spend this Cycle.';
   }

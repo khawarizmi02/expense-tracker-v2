@@ -42,7 +42,12 @@ export {
   recentExpenses,
 } from './expense';
 
-export type { CategoryBudget, BudgetSummary } from './budget';
+export type {
+  BudgetSummary,
+  CappedCategoryBudget,
+  CategoryBudget,
+  TrackedOnlyCategoryBudget,
+} from './budget';
 
 export {
   BudgetError,
@@ -69,7 +74,7 @@ export {
 
 export { toLocalDay, fromLocalDay, addDays } from './day';
 
-export { MINOR_UNITS_PER_MAJOR } from './money';
+export { MAX_AMOUNT_MINOR, MINOR_UNITS_PER_MAJOR } from './money';
 
 /** Semantic version of the core public API. */
 export const CORE_VERSION = '0.4.0';

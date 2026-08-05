@@ -18,13 +18,14 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { MINOR_UNITS_PER_MAJOR } from '../../src/core';
+import { MAX_AMOUNT_MINOR } from '../../src/core';
 import { GradientBackground } from '../../src/ui/GradientBackground';
 import { BudgetBar, budgetTone } from '../../src/ui/BudgetRow';
 import { ioniconFor } from '../../src/ui/categoryIcon';
 import { EmptyExpenses, ExpenseList } from '../../src/ui/ExpenseList';
 import {
   CURRENCY_SYMBOL,
+  formatAmount,
   formatCycleRange,
   formatMoney,
   formatPaceSentence,
@@ -35,36 +36,30 @@ import { useBudgets } from '../../src/store/budgetContext';
 import { useExpenses } from '../../src/store/expenseContext';
 import { useSettings } from '../../src/store/settingsContext';
 
-/** The same ceiling QuickAdd puts on an amount: RM 99,999.99. */
-const MAX_CAP_MINOR = 9_999_999;
-
-/** Parse a typed major-unit cap ("250", "250.50") into minor units. */
-function parseCapMinor(text: string): number | null {
-  const trimmed = text.trim();
-  if (!/^\d+(\.\d{1,2})?$/.test(trimmed)) {
-    return null;
-  }
-  // Round rather than truncate: floats can't hold 250.55 exactly, and a cap the
-  // user typed should be the cap they get.
-  const minor = Math.round(Number(trimmed) * MINOR_UNITS_PER_MAJOR);
-  if (minor <= 0 || minor > MAX_CAP_MINOR) {
-    return null;
-  }
-  return minor;
+/**
+ * The cap the user is typing, as whole minor units.
+ *
+ * Digits are *accumulated*, never parsed out of a decimal string: typing 2‑5‑0
+ * walks 2 → 25 → 250 sen, so no fractional ringgit ever exists to be rounded
+ * (ADR-0006). It is the same accumulation QuickAdd's keypad does, driven by a
+ * plain field instead of a grid of keys.
+ */
+function accumulate(text: string, current: number): number {
+  const digits = text.replace(/\D/g, '');
+  const next = Number(digits);
+  // Past the ceiling the extra digit simply doesn't register, as in QuickAdd.
+  return Number.isSafeInteger(next) && next <= MAX_AMOUNT_MINOR ? next : current;
 }
 
 /** Set, change or clear this category's cap. */
 function CapEditor({ categoryId, capMinor }: { categoryId: string; capMinor: number | null }) {
   const { colors, radius, spacing, typography } = useTheme();
   const { setCap, clearCap } = useBudgets();
-  const [draft, setDraft] = useState(
-    capMinor === null ? '' : String(capMinor / MINOR_UNITS_PER_MAJOR),
-  );
+  const [draftMinor, setDraftMinor] = useState(capMinor ?? 0);
 
-  const parsed = parseCapMinor(draft);
   const save = () => {
-    if (parsed !== null) {
-      setCap(categoryId, parsed);
+    if (draftMinor > 0) {
+      setCap(categoryId, draftMinor);
     }
   };
 
@@ -98,10 +93,10 @@ function CapEditor({ categoryId, capMinor }: { categoryId: string; capMinor: num
             {CURRENCY_SYMBOL}
           </Text>
           <TextInput
-            value={draft}
-            onChangeText={setDraft}
+            value={draftMinor === 0 ? '' : formatAmount(draftMinor)}
+            onChangeText={(text) => setDraftMinor((current) => accumulate(text, current))}
             onSubmitEditing={save}
-            keyboardType="decimal-pad"
+            keyboardType="number-pad"
             placeholder="0.00"
             placeholderTextColor={colors.textMuted}
             accessibilityLabel="Cap amount"
@@ -117,13 +112,13 @@ function CapEditor({ categoryId, capMinor }: { categoryId: string; capMinor: num
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Save cap"
-          accessibilityState={{ disabled: parsed === null }}
-          disabled={parsed === null}
+          accessibilityState={{ disabled: draftMinor === 0 }}
+          disabled={draftMinor === 0}
           onPress={save}
           style={[
             styles.capButton,
             {
-              backgroundColor: parsed === null ? colors.border : colors.accent,
+              backgroundColor: draftMinor === 0 ? colors.border : colors.accent,
               borderRadius: radius.md,
               paddingHorizontal: spacing.lg,
             },
@@ -133,7 +128,7 @@ function CapEditor({ categoryId, capMinor }: { categoryId: string; capMinor: num
             style={{
               fontFamily: typography.fontFamily.semibold,
               fontSize: typography.size.body,
-              color: parsed === null ? colors.textMuted : colors.onAccent,
+              color: draftMinor === 0 ? colors.textMuted : colors.onAccent,
             }}
           >
             Save
@@ -148,7 +143,7 @@ function CapEditor({ categoryId, capMinor }: { categoryId: string; capMinor: num
           accessibilityHint="Removes the cap and tracks this category without a limit"
           onPress={() => {
             clearCap(categoryId);
-            setDraft('');
+            setDraftMinor(0);
           }}
           style={{ marginTop: spacing.md, alignSelf: 'flex-start' }}
           hitSlop={8}
@@ -223,9 +218,8 @@ export default function CategoryDetailScreen() {
     );
   }
 
-  const { category, capped, spentMinor, capMinor, percent } = view;
+  const { category, spentMinor } = view;
   const entries = inCycleByCategory(cycle, category.id);
-  const tone = budgetTone(colors, percent);
 
   return (
     <GradientBackground>
@@ -282,8 +276,8 @@ export default function CategoryDetailScreen() {
 
             <Text
               accessibilityLabel={
-                capped
-                  ? `${formatMoney(spentMinor)} of ${formatMoney(capMinor ?? 0)}, ${formatPercent(percent)}`
+                view.capped
+                  ? `${formatMoney(spentMinor)} of ${formatMoney(view.capMinor)}, ${formatPercent(view.percent)}`
                   : `${formatMoney(spentMinor)} spent, tracked only`
               }
               style={{
@@ -297,7 +291,7 @@ export default function CategoryDetailScreen() {
               {formatMoney(spentMinor)}
             </Text>
 
-            {capped ? (
+            {view.capped ? (
               <Text
                 style={{
                   fontFamily: typography.fontFamily.regular,
@@ -305,9 +299,14 @@ export default function CategoryDetailScreen() {
                   color: colors.textMuted,
                 }}
               >
-                of {formatMoney(capMinor ?? 0)} ·{' '}
-                <Text style={{ color: tone, fontFamily: typography.fontFamily.medium }}>
-                  {formatPercent(percent)}
+                of {formatMoney(view.capMinor)} ·{' '}
+                <Text
+                  style={{
+                    color: budgetTone(colors, view.percent),
+                    fontFamily: typography.fontFamily.medium,
+                  }}
+                >
+                  {formatPercent(view.percent)}
                 </Text>
               </Text>
             ) : (
@@ -333,14 +332,17 @@ export default function CategoryDetailScreen() {
               {formatPaceSentence(view, daysRemaining)}
             </Text>
 
-            {capped && (
+            {view.capped && (
               <View style={{ marginTop: spacing.md }}>
-                <BudgetBar percent={percent} tone={tone} />
+                <BudgetBar percent={view.percent} />
               </View>
             )}
           </View>
 
-          <CapEditor categoryId={category.id} capMinor={capMinor} />
+          <CapEditor
+            categoryId={category.id}
+            capMinor={view.capped ? view.capMinor : null}
+          />
 
           <View>
             <Text

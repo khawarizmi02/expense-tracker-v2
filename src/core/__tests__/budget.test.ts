@@ -139,13 +139,12 @@ describe('capped vs tracked-only categories', () => {
 
   it('reports a tracked-only category with its total and no cap', () => {
     // No bar, no percent, no "left" — just what was spent (CONTEXT.md § Budget).
-    expect(viewFor(groceries, budgets, expenses)).toMatchObject({
+    // The figures aren't zeroed, they're absent: there is nothing to measure
+    // against, and a zero percent would read as a real position.
+    expect(viewFor(groceries, budgets, expenses)).toEqual({
+      category: groceries,
       capped: false,
       spentMinor: 12_000,
-      capMinor: null,
-      percent: 0,
-      remainingMinor: null,
-      overMinor: 0,
     });
   });
 
@@ -210,7 +209,9 @@ describe('hard reset across a Cycle rollover', () => {
 
   it('does not roll leftover money forward', () => {
     const expenses = log([], dining, '2026-08-05', 5_000); // RM 150 left over
-    expect(viewFor(dining, budgets, expenses, NEXT_CYCLE).remainingMinor).toBe(20_000);
+    expect(viewFor(dining, budgets, expenses, NEXT_CYCLE)).toMatchObject({
+      remainingMinor: 20_000,
+    });
   });
 
   it('counts only the new Cycle’s spend once it has started', () => {
@@ -263,10 +264,10 @@ describe('budgetSummary — the Insights ring and pace stats', () => {
     });
   });
 
-  it('reports every category’s spend separately from the ring', () => {
-    // Tracked-only spend is real money out, but it has no cap to sit against —
-    // so it counts in the Cycle total and stays out of the ring.
-    expect(summaryOn('2026-08-05').totalSpentMinor).toBe(16_500);
+  it('keeps tracked-only spend out of the ring', () => {
+    // Groceries' RM 90 is real money out, but it has no cap to sit against, so
+    // it never reaches the ring — the Cycle's whole spend is `spentInCycle`.
+    expect(summaryOn('2026-08-05').cappedSpentMinor).toBe(7_500);
   });
 
   it('paces what is left over the days still to go', () => {
@@ -293,7 +294,6 @@ describe('budgetSummary — the Insights ring and pace stats', () => {
       percent: 0,
       remainingMinor: 0,
       safePerDayMinor: 0,
-      totalSpentMinor: 16_500,
     });
   });
 

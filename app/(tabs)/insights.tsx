@@ -8,13 +8,13 @@
 import React from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
 import { GradientBackground } from '../../src/ui/GradientBackground';
-import { BudgetRow } from '../../src/ui/BudgetRow';
+import { BudgetList } from '../../src/ui/BudgetList';
 import { SpendRing } from '../../src/ui/SpendRing';
 import { formatCycleRange, formatDaysRemaining, formatMoney } from '../../src/ui/format';
 import { useTheme } from '../../src/design/theme';
 import { useBudgets } from '../../src/store/budgetContext';
+import { useExpenses } from '../../src/store/expenseContext';
 import { useSettings } from '../../src/store/settingsContext';
 
 /** One of the three pace figures under the ring. */
@@ -49,8 +49,8 @@ function PaceStat({ label, value }: { label: string; value: string }) {
 
 export default function InsightsScreen() {
   const { colors, spacing, radius, typography, elevation } = useTheme();
-  const router = useRouter();
   const { views, summary } = useBudgets();
+  const { spentInCycle } = useExpenses();
   const { cycle } = useSettings();
 
   return (
@@ -96,9 +96,10 @@ export default function InsightsScreen() {
             ]}
           >
             {/* With nothing capped there is no ring to fill, so it shows the
-                Cycle's plain total rather than an empty circle. */}
+                Cycle's plain total — the same figure Home leads with — rather
+                than an empty circle. */}
             <SpendRing
-              spentMinor={summary.hasCaps ? summary.cappedSpentMinor : summary.totalSpentMinor}
+              spentMinor={summary.hasCaps ? summary.cappedSpentMinor : spentInCycle(cycle)}
               percent={summary.percent}
               caption={
                 summary.hasCaps
@@ -107,30 +108,33 @@ export default function InsightsScreen() {
               }
             />
 
-            <View
-              style={[
-                styles.stats,
-                {
-                  marginTop: spacing.lg,
-                  paddingTop: spacing.lg,
-                  borderTopColor: colors.border,
-                },
-              ]}
-            >
-              <PaceStat
-                label={summary.overMinor > 0 ? 'over the caps' : 'left this Cycle'}
-                value={formatMoney(
-                  summary.overMinor > 0 ? summary.overMinor : summary.remainingMinor,
-                )}
-              />
-              <PaceStat
-                label={summary.daysRemaining === 1 ? 'day to go' : 'days to go'}
-                value={String(summary.daysRemaining)}
-              />
-              <PaceStat label="safe per day" value={formatMoney(summary.safePerDayMinor)} />
-            </View>
-
-            {!summary.hasCaps && (
+            {/* Pace only means something against a cap: with nothing capped,
+                "RM 0.00 left" would read as "you may spend nothing" rather than
+                "you set no limits". */}
+            {summary.hasCaps ? (
+              <View
+                style={[
+                  styles.stats,
+                  {
+                    marginTop: spacing.lg,
+                    paddingTop: spacing.lg,
+                    borderTopColor: colors.border,
+                  },
+                ]}
+              >
+                <PaceStat
+                  label={summary.overMinor > 0 ? 'over the caps' : 'left this Cycle'}
+                  value={formatMoney(
+                    summary.overMinor > 0 ? summary.overMinor : summary.remainingMinor,
+                  )}
+                />
+                <PaceStat
+                  label={summary.daysRemaining === 1 ? 'day to go' : 'days to go'}
+                  value={String(summary.daysRemaining)}
+                />
+                <PaceStat label="safe per day" value={formatMoney(summary.safePerDayMinor)} />
+              </View>
+            ) : (
               <Text
                 style={{
                   marginTop: spacing.md,
@@ -140,7 +144,8 @@ export default function InsightsScreen() {
                   textAlign: 'center',
                 }}
               >
-                Nothing is capped yet. Tap a category below to set a cap.
+                Nothing is capped yet — {formatDaysRemaining(summary.daysRemaining)} in this
+                Cycle. Tap a category below to set a cap.
               </Text>
             )}
           </View>
@@ -157,27 +162,7 @@ export default function InsightsScreen() {
             Budgets
           </Text>
 
-          <View
-            style={{
-              backgroundColor: colors.surface,
-              borderRadius: radius.lg,
-              paddingHorizontal: spacing.md,
-              paddingVertical: spacing.xs,
-            }}
-          >
-            {views.map((view) => (
-              <BudgetRow
-                key={view.category.id}
-                view={view}
-                onPress={() =>
-                  router.push({
-                    pathname: '/category/[id]',
-                    params: { id: view.category.id },
-                  })
-                }
-              />
-            ))}
-          </View>
+          <BudgetList views={views} />
 
           <Text
             style={{
