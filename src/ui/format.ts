@@ -2,7 +2,13 @@
 // as `YYYY-MM-DD`; turning those into the strings a Malaysian user reads —
 // "RM 1,250.00", "Today", "Sat, 26 Jul" — is a UI concern and lives here.
 
-import { MINOR_UNITS_PER_MAJOR, addDays, fromLocalDay, type LocalDay } from '../core';
+import {
+  MINOR_UNITS_PER_MAJOR,
+  addDays,
+  fromLocalDay,
+  type Cycle,
+  type LocalDay,
+} from '../core';
 
 /** Kira's currency symbol. v1 is ringgit-only. */
 export const CURRENCY_SYMBOL = 'RM';
@@ -41,6 +47,43 @@ export function formatDay(day: LocalDay, today: LocalDay): string {
   const weekday = short(WEEKDAYS[date.getDay()] ?? '');
   const month = short(MONTHS[date.getMonth()] ?? '');
   return `${weekday}, ${date.getDate()} ${month}${suffix}`;
+}
+
+/** A day as `26 Jul`, or `26 Jul 2025` when the year needs saying. */
+function formatDayAndMonth(day: LocalDay, withYear: boolean): string {
+  const date = fromLocalDay(day);
+  const year = withYear ? ` ${date.getFullYear()}` : '';
+  return `${date.getDate()} ${short(MONTHS[date.getMonth()] ?? '')}${year}`;
+}
+
+/**
+ * A Cycle as its date range, e.g. `"25 Jul – 24 Aug"`.
+ *
+ * Deliberately a range and never a month name: a Cycle is anchored to the
+ * user's payday and routinely straddles two calendar months (see ADR-0001), so
+ * calling it "August" would be a lie in most of the app's states.
+ */
+export function formatCycleRange(cycle: Cycle): string {
+  // A Cycle straddling New Year — "28 Dec – 27 Jan" — is the one case where the
+  // dates alone don't say which year each end is in, so that one gets years.
+  const withYear = cycle.start.slice(0, 4) !== cycle.end.slice(0, 4);
+  return `${formatDayAndMonth(cycle.start, withYear)} – ${formatDayAndMonth(cycle.end, withYear)}`;
+}
+
+/** How much of the Cycle is left, e.g. `"20 days left"` / `"1 day left"`. */
+export function formatDaysRemaining(days: number): string {
+  return `${days} ${days === 1 ? 'day' : 'days'} left`;
+}
+
+/**
+ * The day of the month as an ordinal — "the 25th" — for naming a payday in
+ * settings and onboarding copy.
+ */
+export function formatOrdinalDay(day: number): string {
+  // 11th–13th break the last-digit rule.
+  const teen = day % 100 >= 11 && day % 100 <= 13;
+  const suffix = teen ? 'th' : ({ 1: 'st', 2: 'nd', 3: 'rd' }[day % 10] ?? 'th');
+  return `${day}${suffix}`;
 }
 
 /**

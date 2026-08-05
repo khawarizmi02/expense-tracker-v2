@@ -68,5 +68,22 @@ export interface ExpenseInput {
   readonly source?: CaptureSource;
 }
 
+/**
+ * The recurring budget window: one global, payday-aligned span of days. See
+ * CONTEXT.md § Cycle and ADR-0001.
+ *
+ * A Cycle is derived, never stored — the only persisted fact is the user's
+ * `startDay`, and the boundaries are recomputed from it against the current day
+ * (see `cycle.ts`). Both boundary days belong to the Cycle.
+ */
+export interface Cycle {
+  /** The user's chosen payday, 1–31, before short-month clamping. */
+  readonly startDay: number;
+  /** The Cycle's first day: the payday, clamped to a short month's last day. */
+  readonly start: LocalDay;
+  /** The Cycle's last day: the day before the next payday. */
+  readonly end: LocalDay;
+}
+
 /** A factory for unique ids, injected so the core stays free of randomness. */
 export type IdFactory = () => string;

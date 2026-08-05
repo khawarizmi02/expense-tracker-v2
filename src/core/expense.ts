@@ -4,8 +4,9 @@
 // Category module: each mutating function returns a new array and ids come from
 // an injected IdFactory.
 
+import { containsDay } from './cycle';
 import { compareDays, isValidDay, type LocalDay } from './day';
-import type { Expense, ExpenseInput, IdFactory } from './types';
+import type { Cycle, Expense, ExpenseInput, IdFactory } from './types';
 
 export class ExpenseError extends Error {}
 
@@ -73,6 +74,20 @@ export function addExpense(
 /** Total spent on one day, in minor units. Home's "spent today". */
 export function spentOn(expenses: readonly Expense[], day: LocalDay): number {
   return expenses.reduce((total, e) => (e.day === day ? total + e.amountMinor : total), 0);
+}
+
+/**
+ * Total spent inside a Cycle, in minor units — the dashboard's "this Cycle"
+ * number.
+ *
+ * Cycle-scoped, never calendar-month-scoped: the window comes from the user's
+ * payday (see ADR-0001), so this is the only spend total the dashboard shows.
+ */
+export function spentInCycle(expenses: readonly Expense[], cycle: Cycle): number {
+  return expenses.reduce(
+    (total, e) => (containsDay(cycle, e.day) ? total + e.amountMinor : total),
+    0,
+  );
 }
 
 /**
