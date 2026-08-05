@@ -85,5 +85,20 @@ export interface Cycle {
   readonly end: LocalDay;
 }
 
+/**
+ * A per-category spending limit for one Cycle. See CONTEXT.md § Budget (cap).
+ *
+ * A Budget is **optional** per category: a category with one is *capped*, one
+ * without is *tracked-only*. There is no `cycle` field — a cap is not per-Cycle
+ * data but a standing limit that each Cycle starts from afresh, which is exactly
+ * what "hard reset, no rollover" means.
+ */
+export interface Budget {
+  /** The Category this caps. At most one Budget per category. */
+  readonly categoryId: string;
+  /** The limit for one Cycle, in whole minor units (sen); always above zero. */
+  readonly capMinor: number;
+}
+
 /** A factory for unique ids, injected so the core stays free of randomness. */
 export type IdFactory = () => string;
