@@ -60,6 +60,10 @@ export {
   topBudgets,
 } from './budget';
 
+export type { Forecast } from './forecast';
+
+export { forecastFor, forecasts } from './forecast';
+
 export type { Alert, AlertRecord, AlertThreshold, SaveFeedback } from './alert';
 
 export {
@@ -88,4 +92,4 @@ export { toLocalDay, fromLocalDay, addDays } from './day';
 export { MAX_AMOUNT_MINOR, MINOR_UNITS_PER_MAJOR } from './money';
 
 /** Semantic version of the core public API. */
-export const CORE_VERSION = '0.5.0';
+export const CORE_VERSION = '0.6.0';

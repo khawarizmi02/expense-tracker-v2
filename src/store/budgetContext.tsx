@@ -20,12 +20,14 @@ import {
   categoryBudgets,
   clearCap as coreClearCap,
   findBudget,
+  forecasts as coreForecasts,
   setCap as coreSetCap,
   topBudgets,
   type Budget,
   type BudgetSummary,
   type CategoryBudget,
   type Expense,
+  type Forecast,
 } from '../core';
 import { BudgetRepository } from './budgetRepository';
 import { useCategories } from './categoryContext';
@@ -45,6 +47,13 @@ interface BudgetContextValue {
   summary: BudgetSummary;
   /** The capped categories closest to their cap — Home's budget bars. */
   top: CategoryBudget[];
+  /**
+   * The categories projected to end this Cycle over their cap, worst first —
+   * the Forecast nudges (T7). Empty inside the early-Cycle suppression window.
+   */
+  forecasts: Forecast[];
+  /** One category's Forecast, or undefined when it has no nudge to give. */
+  forecastFor: (categoryId: string) => Forecast | undefined;
   /** One category's position, or undefined if it isn't an active category. */
   viewFor: (categoryId: string) => CategoryBudget | undefined;
   /**
@@ -97,6 +106,9 @@ export function BudgetProvider({ children }: { children: React.ReactNode }) {
     const views = categoryBudgets(categories, budgets, expenses, cycle);
     const pick = (list: readonly CategoryBudget[], categoryId: string) =>
       list.find((v) => v.category.id === categoryId);
+    // Derived once for the whole Cycle rather than per screen, so Home's single
+    // nudge is the first of the same list Insights shows in full.
+    const forecasts = coreForecasts(views, cycle, today);
 
     return {
       ready,
@@ -104,6 +116,8 @@ export function BudgetProvider({ children }: { children: React.ReactNode }) {
       views,
       summary: budgetSummary(views, cycle, today),
       top: topBudgets(views, TOP_BUDGET_LIMIT),
+      forecasts,
+      forecastFor: (categoryId) => forecasts.find((f) => f.category.id === categoryId),
       viewFor: (categoryId) => pick(views, categoryId),
       viewAfter: (categoryId, extra) =>
         pick(categoryBudgets(categories, budgets, [...expenses, ...extra], cycle), categoryId),

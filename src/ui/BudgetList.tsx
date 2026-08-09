@@ -4,14 +4,14 @@
 
 import React from 'react';
 import { View } from 'react-native';
-import { useRouter } from 'expo-router';
 import type { CategoryBudget } from '../core';
 import { useTheme } from '../design/theme';
 import { BudgetRow } from './BudgetRow';
+import { useOpenCategory } from './openCategory';
 
 export function BudgetList({ views }: { views: readonly CategoryBudget[] }) {
   const { colors, radius, spacing } = useTheme();
-  const router = useRouter();
+  const openCategory = useOpenCategory();
 
   return (
     <View
@@ -26,9 +26,7 @@ export function BudgetList({ views }: { views: readonly CategoryBudget[] }) {
         <BudgetRow
           key={view.category.id}
           view={view}
-          onPress={() =>
-            router.push({ pathname: '/category/[id]', params: { id: view.category.id } })
-          }
+          onPress={() => openCategory(view.category.id)}
         />
       ))}
     </View>

@@ -11,6 +11,8 @@ import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { GradientBackground } from '../../src/ui/GradientBackground';
 import { BudgetList } from '../../src/ui/BudgetList';
+import { ForecastNudge } from '../../src/ui/ForecastNudge';
+import { useOpenCategory } from '../../src/ui/openCategory';
 import { EmptyExpenses, ExpenseList } from '../../src/ui/ExpenseList';
 import { formatCycleRange, formatDaysRemaining, formatMoney } from '../../src/ui/format';
 import { useTheme } from '../../src/design/theme';
@@ -22,7 +24,12 @@ export default function HomeScreen() {
   const { colors, spacing, radius, typography, elevation } = useTheme();
   const { spentOn, spentInCycle, recent, today } = useExpenses();
   const { cycle, daysRemaining } = useSettings();
-  const { top } = useBudgets();
+  const { top, forecasts } = useBudgets();
+  const openCategory = useOpenCategory();
+  // Home carries the single worst projection only — the full set is on Insights.
+  // One nudge is a prompt to act; a stack of them on the first screen of the app
+  // is a wall of bad news.
+  const [worstForecast] = forecasts;
   const spentToday = spentOn(today);
   const spentThisCycle = spentInCycle(cycle);
 
@@ -118,6 +125,15 @@ export default function HomeScreen() {
               </Text>
             </View>
           </View>
+
+          {worstForecast && (
+            <View style={{ marginTop: spacing.lg }}>
+              <ForecastNudge
+                forecast={worstForecast}
+                onPress={() => openCategory(worstForecast.category.id)}
+              />
+            </View>
+          )}
 
           {top.length > 0 && (
             <>

@@ -11,6 +11,7 @@ import {
   type Alert,
   type CategoryBudget,
   type Cycle,
+  type Forecast,
   type LocalDay,
   type SaveFeedback,
 } from '../core';
@@ -115,6 +116,21 @@ export function formatPercent(percent: number): string {
 }
 
 /**
+ * The way back under a cap, in one number: what can still be spent each day, or
+ * the fact that there is nothing left to spend at all.
+ *
+ * One sentence shared by the pace read and the Forecast nudge — both answer the
+ * same question off the same figure, and two copies of it would be two places to
+ * keep in step.
+ */
+function formatSafePerDay(perDayMinor: number, daysRemaining: number): string {
+  if (perDayMinor === 0) {
+    return `Nothing left to spend this Cycle — ${formatDaysRemaining(daysRemaining)}.`;
+  }
+  return `${formatMoney(perDayMinor)} a day keeps it under, ${formatDaysRemaining(daysRemaining)}.`;
+}
+
+/**
  * The one-line pace read on a category: what can still be spent per day, or how
  * far past the cap it already is.
  *
@@ -128,11 +144,26 @@ export function formatPaceSentence(view: CategoryBudget, daysRemaining: number):
   if (view.overMinor > 0) {
     return `${formatMoney(view.overMinor)} over the cap.`;
   }
-  const perDay = safePerDay(view.remainingMinor, daysRemaining);
-  if (perDay === 0) {
-    return 'Nothing left to spend this Cycle.';
-  }
-  return `${formatMoney(perDay)} a day keeps you under, ${formatDaysRemaining(daysRemaining)}.`;
+  return formatSafePerDay(safePerDay(view.remainingMinor, daysRemaining), daysRemaining);
+}
+
+/**
+ * The Forecast nudge's headline (T7): where this Cycle lands for a category if
+ * the user carries on as they have been (spec story 30).
+ *
+ * "At this pace" is doing real work in that sentence — it is what marks the
+ * figure as a projection rather than money already spent, which is the one thing
+ * a Forecast must never be confused with (CONTEXT.md § Forecast).
+ */
+export function formatForecastNudge(forecast: Forecast): string {
+  return `At this pace, ${forecast.category.name} ends this Cycle ${formatMoney(
+    forecast.projectedOverMinor,
+  )} over its cap.`;
+}
+
+/** The Forecast nudge's second line: the way back under, in one number. */
+export function formatForecastHint(forecast: Forecast): string {
+  return formatSafePerDay(forecast.safePerDayMinor, forecast.daysRemaining);
 }
 
 /**
