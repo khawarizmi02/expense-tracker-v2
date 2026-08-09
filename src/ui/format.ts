@@ -7,9 +7,11 @@ import {
   addDays,
   fromLocalDay,
   safePerDay,
+  type Alert,
   type CategoryBudget,
   type Cycle,
   type LocalDay,
+  type SaveFeedback,
 } from '../core';
 
 /** Kira's currency symbol. v1 is ringgit-only. */
@@ -130,6 +132,48 @@ export function formatPaceSentence(view: CategoryBudget, daysRemaining: number):
     return 'Nothing left to spend this Cycle.';
   }
   return `${formatMoney(perDay)} a day keeps you under, ${formatDaysRemaining(daysRemaining)}.`;
+}
+
+/**
+ * The post-save toast (T6): one line reflecting where the save left the
+ * category (spec story 52). The state itself is the core's — `saveFeedback`
+ * picks it off the same thresholds the Alerts use — so this is only the words.
+ *
+ * The streak-extended line joins these when there is a Streak to extend (T11).
+ */
+export function formatSaveFeedback(feedback: SaveFeedback, categoryName: string): string {
+  switch (feedback.kind) {
+    case 'saved':
+      return 'Expense saved.';
+    case 'on-track':
+      return `Saved — ${categoryName} at ${formatPercent(feedback.percent)} of its cap.`;
+    case 'at-threshold':
+      return `Saved — ${categoryName} at ${formatPercent(feedback.percent)}, ${formatMoney(
+        feedback.remainingMinor,
+      )} left.`;
+    case 'over-budget':
+      return feedback.overMinor > 0
+        ? `Saved — ${categoryName} is ${formatMoney(feedback.overMinor)} over its cap.`
+        : `Saved — ${categoryName} has used its whole cap.`;
+  }
+}
+
+/** The title and body of the push notification an Alert is delivered as (T6). */
+export function formatAlertNotification(alert: Alert): { title: string; body: string } {
+  const spendOfCap = `${formatMoney(alert.spentMinor)} of your ${formatMoney(alert.capMinor)} cap`;
+  if (alert.threshold === 100) {
+    return {
+      title: `${alert.category.name} is over budget`,
+      body:
+        alert.overMinor > 0
+          ? `${spendOfCap} — ${formatMoney(alert.overMinor)} over.`
+          : `${spendOfCap} — the whole cap is spent.`,
+    };
+  }
+  return {
+    title: `${alert.category.name} at ${formatPercent(alert.percent)}`,
+    body: `${spendOfCap}. ${formatMoney(alert.capMinor - alert.spentMinor)} left this Cycle.`,
+  };
 }
 
 /**

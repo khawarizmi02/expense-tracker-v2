@@ -60,6 +60,17 @@ export {
   topBudgets,
 } from './budget';
 
+export type { Alert, AlertRecord, AlertThreshold, SaveFeedback } from './alert';
+
+export {
+  ALERT_THRESHOLDS,
+  crossedThresholds,
+  dueAlerts,
+  hasFired,
+  recordAlerts,
+  saveFeedback,
+} from './alert';
+
 export {
   DEFAULT_CYCLE_START_DAY,
   CycleError,
@@ -77,4 +88,4 @@ export { toLocalDay, fromLocalDay, addDays } from './day';
 export { MAX_AMOUNT_MINOR, MINOR_UNITS_PER_MAJOR } from './money';
 
 /** Semantic version of the core public API. */
-export const CORE_VERSION = '0.4.0';
+export const CORE_VERSION = '0.5.0';

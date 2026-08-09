@@ -28,6 +28,12 @@
       "expo-asset",
       "expo-font",
       [
+        "expo-notifications",
+        {
+          "color": "#0075de"
+        }
+      ],
+      [
         "expo-splash-screen",
         {
           "image": "./assets/splash-icon.png",

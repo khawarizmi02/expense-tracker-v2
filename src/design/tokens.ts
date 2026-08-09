@@ -96,8 +96,9 @@ export type CategoryColorToken = keyof typeof categoryColors;
  * from here rather than repeating hex literals.
  *
  * One copy lives outside this file and can't: `app.json` repeats `primary` for
- * `android.adaptiveIcon.backgroundColor` and the splash plugin, because static
- * JSON can't import a token. Change `primary` and you must change those too.
+ * `android.adaptiveIcon.backgroundColor`, the splash plugin, and the
+ * notification accent, because static JSON can't import a token. Change
+ * `primary` and you must change those too.
  *
  * Intentionally distinct from the UI accent (`Palette.accent`, purple).
  */
