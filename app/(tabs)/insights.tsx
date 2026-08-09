@@ -8,8 +8,10 @@
 import React from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useRouter } from 'expo-router';
 import { GradientBackground } from '../../src/ui/GradientBackground';
 import { BudgetList } from '../../src/ui/BudgetList';
+import { ForecastNudge } from '../../src/ui/ForecastNudge';
 import { SpendRing } from '../../src/ui/SpendRing';
 import { formatCycleRange, formatDaysRemaining, formatMoney } from '../../src/ui/format';
 import { useTheme } from '../../src/design/theme';
@@ -49,9 +51,10 @@ function PaceStat({ label, value }: { label: string; value: string }) {
 
 export default function InsightsScreen() {
   const { colors, spacing, radius, typography, elevation } = useTheme();
-  const { views, summary } = useBudgets();
+  const { views, summary, forecasts } = useBudgets();
   const { spentInCycle } = useExpenses();
   const { cycle } = useSettings();
+  const router = useRouter();
 
   return (
     <GradientBackground>
@@ -149,6 +152,36 @@ export default function InsightsScreen() {
               </Text>
             )}
           </View>
+
+          {/* Every projection, worst first — Home shows only the first of these.
+              Nothing renders inside the early-Cycle suppression window, which is
+              the Forecast being quiet rather than an empty state to explain. */}
+          {forecasts.length > 0 && (
+            <View style={{ marginTop: spacing.xl, gap: spacing.sm }}>
+              <Text
+                style={{
+                  marginBottom: spacing.xs / 2,
+                  fontFamily: typography.fontFamily.semibold,
+                  fontSize: typography.size.label,
+                  color: colors.textPrimary,
+                }}
+              >
+                Trending over
+              </Text>
+              {forecasts.map((forecast) => (
+                <ForecastNudge
+                  key={forecast.category.id}
+                  forecast={forecast}
+                  onPress={() =>
+                    router.push({
+                      pathname: '/category/[id]',
+                      params: { id: forecast.category.id },
+                    })
+                  }
+                />
+              ))}
+            </View>
+          )}
 
           <Text
             style={{

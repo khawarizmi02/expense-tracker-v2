@@ -11,6 +11,7 @@ import {
   type Alert,
   type CategoryBudget,
   type Cycle,
+  type Forecast,
   type LocalDay,
   type SaveFeedback,
 } from '../core';
@@ -133,6 +134,32 @@ export function formatPaceSentence(view: CategoryBudget, daysRemaining: number):
     return 'Nothing left to spend this Cycle.';
   }
   return `${formatMoney(perDay)} a day keeps you under, ${formatDaysRemaining(daysRemaining)}.`;
+}
+
+/**
+ * The Forecast nudge's headline (T7): where this Cycle lands for a category if
+ * the user carries on as they have been (spec story 30).
+ *
+ * "At this pace" is doing real work in that sentence — it is what marks the
+ * figure as a projection rather than money already spent, which is the one thing
+ * a Forecast must never be confused with (CONTEXT.md § Forecast).
+ */
+export function formatForecastNudge(forecast: Forecast): string {
+  return `At this pace, ${forecast.category.name} ends this Cycle ${formatMoney(
+    forecast.projectedOverMinor,
+  )} over its cap.`;
+}
+
+/** The Forecast nudge's second line: the way back under, in one number. */
+export function formatForecastHint(forecast: Forecast): string {
+  if (forecast.safePerDayMinor === 0) {
+    // Already at or past the cap: there is no daily amount that keeps it under,
+    // only the fact that the money is gone.
+    return `Nothing left to spend this Cycle — ${formatDaysRemaining(forecast.daysRemaining)}.`;
+  }
+  return `${formatMoney(forecast.safePerDayMinor)} a day keeps it under, ${formatDaysRemaining(
+    forecast.daysRemaining,
+  )}.`;
 }
 
 /**

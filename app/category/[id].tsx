@@ -23,6 +23,7 @@ import { GradientBackground } from '../../src/ui/GradientBackground';
 import { BudgetBar, budgetTone } from '../../src/ui/BudgetRow';
 import { ioniconFor } from '../../src/ui/categoryIcon';
 import { EmptyExpenses, ExpenseList } from '../../src/ui/ExpenseList';
+import { ForecastNudge } from '../../src/ui/ForecastNudge';
 import {
   CURRENCY_SYMBOL,
   formatAmount,
@@ -179,11 +180,12 @@ export default function CategoryDetailScreen() {
   const { colors, radius, spacing, typography, elevation, categoryColor } = useTheme();
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { viewFor } = useBudgets();
+  const { viewFor, forecastFor } = useBudgets();
   const { inCycleByCategory } = useExpenses();
   const { cycle, daysRemaining } = useSettings();
 
   const view = id ? viewFor(id) : undefined;
+  const forecast = id ? forecastFor(id) : undefined;
 
   // The category can vanish underneath this screen — archived from Categories
   // while the overlay is open, or a stale deep link. Say so rather than crash.
@@ -338,6 +340,10 @@ export default function CategoryDetailScreen() {
               </View>
             )}
           </View>
+
+          {/* The projection sits under the card rather than in it: the card is
+              what has been spent, this is what is only heading that way. */}
+          {forecast && <ForecastNudge forecast={forecast} withHint={false} />}
 
           <CapEditor
             categoryId={category.id}
