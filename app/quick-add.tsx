@@ -72,9 +72,8 @@ export default function QuickAddModal() {
     // counts the new expense that React hasn't re-rendered the providers with
     // yet. The push notification for a crossing is the AlertProvider's job —
     // this is only the in-app half (spec story 52).
-    const view = viewAfter(categoryId, [expense]);
-    const feedback = saveFeedback(view);
-    show(formatSaveFeedback(feedback, view?.category.name ?? ''), toneFor(feedback));
+    const feedback = saveFeedback(viewAfter(categoryId, [expense]));
+    show(formatSaveFeedback(feedback), toneFor(feedback));
     router.back();
   };
 

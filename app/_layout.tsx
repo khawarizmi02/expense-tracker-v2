@@ -17,7 +17,7 @@ import { StoreProvider } from '../src/store/storeContext';
 import { CategoryProvider } from '../src/store/categoryContext';
 import { ExpenseProvider } from '../src/store/expenseContext';
 import { BudgetProvider } from '../src/store/budgetContext';
-import { AlertProvider } from '../src/store/alertContext';
+import { AlertProvider } from '../src/notifications/alertContext';
 import { SettingsProvider, useSettings } from '../src/store/settingsContext';
 import { ToastProvider } from '../src/ui/Toast';
 

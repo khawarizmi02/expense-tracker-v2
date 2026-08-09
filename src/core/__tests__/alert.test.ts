@@ -8,6 +8,7 @@
 import {
   ALERT_THRESHOLDS,
   addExpense,
+  announcements,
   archiveCategory,
   categoryBudgets,
   currentCycle,
@@ -123,6 +124,42 @@ describe('what an Alert carries', () => {
   });
 });
 
+describe('which due Alerts are actually announced', () => {
+  const announcedFor = (expenses: readonly Expense[], budgets: readonly Budget[] = CAPPED) =>
+    announcements(dueAlerts(views(expenses, budgets), CYCLE, []));
+
+  it('sends only the 100% Alert when one expense owes both', () => {
+    // Both are still *due*, and both get recorded — but the user hears the
+    // louder, truer one rather than two buzzes about one purchase.
+    expect(announcedFor(log([], dining, 24_000)).map((a) => a.threshold)).toEqual([100]);
+  });
+
+  it('sends the 80% Alert when that is all that is owed', () => {
+    expect(announcedFor(log([], dining, 16_000)).map((a) => a.threshold)).toEqual([80]);
+  });
+
+  it('never lets an announced 80% Alert carry an over-cap percent', () => {
+    for (const alert of announcedFor(log([], dining, 24_000))) {
+      if (alert.threshold === 80) {
+        expect(alert.percent).toBeLessThan(100);
+      }
+    }
+  });
+
+  it('still sends one Alert per category when several cross at once', () => {
+    const budgets = setCap(CAPPED, groceries.id, 20_000);
+    const spent = log(log([], dining, 24_000), groceries, 16_000);
+    expect(announcedFor(spent, budgets).map((a) => [a.category.id, a.threshold])).toEqual([
+      [groceries.id, 80],
+      [dining.id, 100],
+    ]);
+  });
+
+  it('announces nothing when nothing is due', () => {
+    expect(announcements([])).toEqual([]);
+  });
+});
+
 describe('firing once per threshold per category per Cycle', () => {
   it('does not re-fire a threshold already recorded this Cycle', () => {
     const spent = log([], dining, 16_000);
@@ -214,13 +251,18 @@ describe('post-save feedback', () => {
   it('reports how far into the cap a save landed while under 80%', () => {
     expect(feedbackFor(log([], dining, 10_000))).toMatchObject({
       kind: 'on-track',
+      category: dining,
       percent: 50,
       remainingMinor: 10_000,
     });
   });
 
   it('flags the 80% threshold', () => {
-    expect(feedbackFor(log([], dining, 16_000))).toMatchObject({ kind: 'at-threshold', percent: 80 });
+    expect(feedbackFor(log([], dining, 16_000))).toMatchObject({
+      kind: 'at-threshold',
+      category: dining,
+      percent: 80,
+    });
   });
 
   it('flags being over budget, with how far over', () => {

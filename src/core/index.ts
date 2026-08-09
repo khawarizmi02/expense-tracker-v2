@@ -64,7 +64,7 @@ export type { Alert, AlertRecord, AlertThreshold, SaveFeedback } from './alert';
 
 export {
   ALERT_THRESHOLDS,
-  crossedThresholds,
+  announcements,
   dueAlerts,
   hasFired,
   recordAlerts,

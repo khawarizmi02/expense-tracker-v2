@@ -102,8 +102,3 @@ export async function notify(message: NotificationMessage): Promise<void> {
     // Delivery is best-effort: a failed post must not fail the save behind it.
   }
 }
-
-/** Test seam: forget the cached answer so the next call asks again. */
-export function resetNotificationPermission(): void {
-  permission = null;
-}

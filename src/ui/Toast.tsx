@@ -20,10 +20,28 @@ import React, {
 import { Animated, Pressable, StyleSheet, Text } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import type { SaveFeedback } from '../core';
-import { useTheme } from '../design/theme';
+import { useTheme, type Theme } from '../design/theme';
 
 /** How a toast reads: an acknowledgement, a warning, or a limit passed. */
 export type ToastTone = 'neutral' | 'warning' | 'danger';
+
+/** The theme colors that are a single value — the gradients aren't tints. */
+type SolidColor = {
+  [K in keyof Theme['colors']]: Theme['colors'][K] extends string ? K : never;
+}[keyof Theme['colors']];
+
+/**
+ * What each tone looks like. One map rather than an icon lookup beside a colour
+ * cascade, so a tone's badge and its colour can't drift apart.
+ */
+const TONES: Record<
+  ToastTone,
+  { icon: React.ComponentProps<typeof Ionicons>['name']; color: SolidColor }
+> = {
+  neutral: { icon: 'checkmark-circle', color: 'success' },
+  warning: { icon: 'alert-circle', color: 'warning' },
+  danger: { icon: 'warning', color: 'danger' },
+};
 
 /** The tone a post-save state reads in — the core's kinds, coloured. */
 export function toneFor(feedback: SaveFeedback): ToastTone {
@@ -54,12 +72,6 @@ interface ToastContextValue {
 }
 
 const ToastContext = createContext<ToastContextValue | null>(null);
-
-const ICONS: Record<ToastTone, React.ComponentProps<typeof Ionicons>['name']> = {
-  neutral: 'checkmark-circle',
-  warning: 'alert-circle',
-  danger: 'warning',
-};
 
 export function ToastProvider({ children }: { children: React.ReactNode }) {
   const [message, setMessage] = useState<ToastMessage | null>(null);
@@ -115,12 +127,8 @@ function Toast({ message, onDismiss }: { message: ToastMessage; onDismiss: () =>
     };
   }, [opacity, onDismiss]);
 
-  const tint =
-    message.tone === 'danger'
-      ? colors.danger
-      : message.tone === 'warning'
-        ? colors.warning
-        : colors.success;
+  const { icon, color } = TONES[message.tone];
+  const tint = colors[color];
 
   return (
     <Animated.View
@@ -144,7 +152,7 @@ function Toast({ message, onDismiss }: { message: ToastMessage; onDismiss: () =>
           },
         ]}
       >
-        <Ionicons name={ICONS[message.tone]} size={20} color={tint} />
+        <Ionicons name={icon} size={20} color={tint} />
         <Text
           style={{
             flex: 1,

@@ -95,6 +95,8 @@ export function BudgetProvider({ children }: { children: React.ReactNode }) {
     };
 
     const views = categoryBudgets(categories, budgets, expenses, cycle);
+    const pick = (list: readonly CategoryBudget[], categoryId: string) =>
+      list.find((v) => v.category.id === categoryId);
 
     return {
       ready,
@@ -102,11 +104,9 @@ export function BudgetProvider({ children }: { children: React.ReactNode }) {
       views,
       summary: budgetSummary(views, cycle, today),
       top: topBudgets(views, TOP_BUDGET_LIMIT),
-      viewFor: (categoryId) => views.find((v) => v.category.id === categoryId),
+      viewFor: (categoryId) => pick(views, categoryId),
       viewAfter: (categoryId, extra) =>
-        categoryBudgets(categories, budgets, [...expenses, ...extra], cycle).find(
-          (v) => v.category.id === categoryId,
-        ),
+        pick(categoryBudgets(categories, budgets, [...expenses, ...extra], cycle), categoryId),
       capFor: (categoryId) => findBudget(budgets, categoryId)?.capMinor ?? null,
       setCap: (categoryId, capMinor) => commit(coreSetCap(budgets, categoryId, capMinor)),
       clearCap: (categoryId) => commit(coreClearCap(budgets, categoryId)),

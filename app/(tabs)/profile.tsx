@@ -8,7 +8,7 @@ import { GradientBackground } from '../../src/ui/GradientBackground';
 import { useToast } from '../../src/ui/Toast';
 import { formatOrdinalDay, formatPercent } from '../../src/ui/format';
 import { useTheme } from '../../src/design/theme';
-import { useAlerts } from '../../src/store/alertContext';
+import { useAlerts } from '../../src/notifications/alertContext';
 import { useSettings } from '../../src/store/settingsContext';
 
 /** "80% and 100%" — the fixed thresholds, named from the core's own list. */

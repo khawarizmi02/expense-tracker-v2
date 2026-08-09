@@ -65,14 +65,31 @@ export type SaveFeedback =
   /** Nothing to measure against: a tracked-only category. */
   | { readonly kind: 'saved' }
   /** Inside the cap and below the first threshold. */
-  | { readonly kind: 'on-track'; readonly percent: number; readonly remainingMinor: number }
+  | {
+      readonly kind: 'on-track';
+      readonly category: Category;
+      readonly percent: number;
+      readonly remainingMinor: number;
+    }
   /** At or past 80% of the cap, but not yet over it. */
-  | { readonly kind: 'at-threshold'; readonly percent: number; readonly remainingMinor: number }
+  | {
+      readonly kind: 'at-threshold';
+      readonly category: Category;
+      readonly percent: number;
+      readonly remainingMinor: number;
+    }
   /** At or past the cap. */
-  | { readonly kind: 'over-budget'; readonly percent: number; readonly overMinor: number };
+  | {
+      readonly kind: 'over-budget';
+      readonly category: Category;
+      readonly percent: number;
+      readonly overMinor: number;
+    };
+
+const [WARNING_THRESHOLD, OVER_THRESHOLD] = ALERT_THRESHOLDS;
 
 /** The thresholds `view` has reached, ascending; empty for a tracked-only one. */
-export function crossedThresholds(view: CategoryBudget): AlertThreshold[] {
+function crossedThresholds(view: CategoryBudget): AlertThreshold[] {
   if (!view.capped) {
     return [];
   }
@@ -132,6 +149,27 @@ export function dueAlerts(
 }
 
 /**
+ * The Alerts worth *sending*, at most one per category: the highest threshold
+ * each has reached.
+ *
+ * `dueAlerts` answers a bookkeeping question — which thresholds are now owed —
+ * and one expense can owe both at once. Sending both would be two buzzes about
+ * one purchase, and the 80% one would be the quieter, staler news of the two.
+ * The user hears "you are over budget"; both thresholds are still recorded, so
+ * neither can come back later.
+ */
+export function announcements(alerts: readonly Alert[]): Alert[] {
+  const loudest = new Map<string, Alert>();
+  for (const alert of alerts) {
+    const held = loudest.get(alert.category.id);
+    if (!held || alert.threshold > held.threshold) {
+      loudest.set(alert.category.id, alert);
+    }
+  }
+  return [...loudest.values()];
+}
+
+/**
  * Note `alerts` as announced for `cycle`, returning the records to keep.
  *
  * Records from other Cycles are dropped rather than accumulated: caps reset
@@ -164,12 +202,12 @@ export function saveFeedback(view: CategoryBudget | undefined): SaveFeedback {
   if (!view || !view.capped) {
     return { kind: 'saved' };
   }
-  const { percent, remainingMinor, overMinor } = view;
-  if (percent >= 100) {
-    return { kind: 'over-budget', percent, overMinor };
+  const { category, percent, remainingMinor, overMinor } = view;
+  if (percent >= OVER_THRESHOLD) {
+    return { kind: 'over-budget', category, percent, overMinor };
   }
-  if (percent >= ALERT_THRESHOLDS[0]) {
-    return { kind: 'at-threshold', percent, remainingMinor };
+  if (percent >= WARNING_THRESHOLD) {
+    return { kind: 'at-threshold', category, percent, remainingMinor };
   }
-  return { kind: 'on-track', percent, remainingMinor };
+  return { kind: 'on-track', category, percent, remainingMinor };
 }
