@@ -5,7 +5,6 @@
 // a run-rate is meaningless without one, and the core has no clock.
 
 import {
-  FORECAST_SUPPRESSION_DAYS,
   addExpense,
   categoryBudgets,
   currentCycle,
@@ -80,16 +79,11 @@ describe('early-Cycle suppression', () => {
   it('speaks from the day after the window closes', () => {
     expect(forecastOf(dining, budgets, expenses, DAY_4)).toBeDefined();
   });
-
-  it('suppresses for a whole number of days', () => {
-    expect(Number.isInteger(FORECAST_SUPPRESSION_DAYS)).toBe(true);
-    expect(FORECAST_SUPPRESSION_DAYS).toBeGreaterThan(0);
-  });
 });
 
 describe('run-rate projection', () => {
   const budgets = setCap([], dining.id, 20_000);
-  // RM 100 across the first 10 days of a 31-day Cycle.
+  // RM 100 spent by day 10 of a 31-day Cycle.
   const expenses = log([], dining, DAY_10, 10_000);
 
   it('projects spend so far out to the end of the Cycle', () => {
@@ -131,8 +125,8 @@ describe('run-rate projection', () => {
 
 describe('which categories get a nudge', () => {
   it('nudges a capped category trending over', () => {
-    // RM 80 in 10 days projects to RM 248 — past a RM 200 cap, with the Cycle's
-    // last 21 days still to spend.
+    // RM 80 in 10 days projects to RM 248 — past a RM 200 cap, with 22 days of
+    // the Cycle still to spend.
     const expenses = log([], dining, DAY_4, 8_000);
     expect(forecastOf(dining, setCap([], dining.id, 20_000), expenses, DAY_10)).toBeDefined();
   });

@@ -19,20 +19,25 @@ export function ForecastNudge({
   withHint = true,
 }: {
   forecast: Forecast;
+  /** Omitted on the category's own detail screen, which is where this leads. */
   onPress?: () => void;
   /**
    * Whether to print the "RM X a day keeps it under" line. Off on category
-   * detail, where the pace sentence above already carries that number and
-   * repeating it would read as two answers to one question.
+   * detail, where the pace sentence above already carries that same figure
+   * (in both of its shapes) and repeating it reads as two answers to one
+   * question.
    */
   withHint?: boolean;
 }) {
   const { colors, radius, spacing, typography } = useTheme();
   const headline = formatForecastNudge(forecast);
   const hint = withHint ? formatForecastHint(forecast) : '';
+  // A card with nowhere to go is not a button, and shouldn't announce itself as
+  // one to a screen reader or flash a press state.
+  const Card = onPress ? Pressable : View;
 
   return (
-    <Pressable
+    <Card
       accessibilityRole={onPress ? 'button' : undefined}
       accessibilityLabel={hint ? `${headline} ${hint}` : headline}
       onPress={onPress}
@@ -71,7 +76,7 @@ export function ForecastNudge({
           </Text>
         )}
       </View>
-    </Pressable>
+    </Card>
   );
 }
 

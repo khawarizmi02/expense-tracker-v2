@@ -62,12 +62,7 @@ export {
 
 export type { Forecast } from './forecast';
 
-export {
-  FORECAST_SUPPRESSION_DAYS,
-  forecastFor,
-  forecasts,
-  isForecastSuppressed,
-} from './forecast';
+export { forecastFor, forecasts } from './forecast';
 
 export type { Alert, AlertRecord, AlertThreshold, SaveFeedback } from './alert';
 

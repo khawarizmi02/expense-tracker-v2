@@ -8,11 +8,11 @@
 import React from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
 import { GradientBackground } from '../../src/ui/GradientBackground';
 import { BudgetList } from '../../src/ui/BudgetList';
 import { ForecastNudge } from '../../src/ui/ForecastNudge';
 import { SpendRing } from '../../src/ui/SpendRing';
+import { useOpenCategory } from '../../src/ui/openCategory';
 import { formatCycleRange, formatDaysRemaining, formatMoney } from '../../src/ui/format';
 import { useTheme } from '../../src/design/theme';
 import { useBudgets } from '../../src/store/budgetContext';
@@ -54,7 +54,7 @@ export default function InsightsScreen() {
   const { views, summary, forecasts } = useBudgets();
   const { spentInCycle } = useExpenses();
   const { cycle } = useSettings();
-  const router = useRouter();
+  const openCategory = useOpenCategory();
 
   return (
     <GradientBackground>
@@ -172,12 +172,7 @@ export default function InsightsScreen() {
                 <ForecastNudge
                   key={forecast.category.id}
                   forecast={forecast}
-                  onPress={() =>
-                    router.push({
-                      pathname: '/category/[id]',
-                      params: { id: forecast.category.id },
-                    })
-                  }
+                  onPress={() => openCategory(forecast.category.id)}
                 />
               ))}
             </View>

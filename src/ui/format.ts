@@ -116,6 +116,21 @@ export function formatPercent(percent: number): string {
 }
 
 /**
+ * The way back under a cap, in one number: what can still be spent each day, or
+ * the fact that there is nothing left to spend at all.
+ *
+ * One sentence shared by the pace read and the Forecast nudge — both answer the
+ * same question off the same figure, and two copies of it would be two places to
+ * keep in step.
+ */
+function formatSafePerDay(perDayMinor: number, daysRemaining: number): string {
+  if (perDayMinor === 0) {
+    return `Nothing left to spend this Cycle — ${formatDaysRemaining(daysRemaining)}.`;
+  }
+  return `${formatMoney(perDayMinor)} a day keeps it under, ${formatDaysRemaining(daysRemaining)}.`;
+}
+
+/**
  * The one-line pace read on a category: what can still be spent per day, or how
  * far past the cap it already is.
  *
@@ -129,11 +144,7 @@ export function formatPaceSentence(view: CategoryBudget, daysRemaining: number):
   if (view.overMinor > 0) {
     return `${formatMoney(view.overMinor)} over the cap.`;
   }
-  const perDay = safePerDay(view.remainingMinor, daysRemaining);
-  if (perDay === 0) {
-    return 'Nothing left to spend this Cycle.';
-  }
-  return `${formatMoney(perDay)} a day keeps you under, ${formatDaysRemaining(daysRemaining)}.`;
+  return formatSafePerDay(safePerDay(view.remainingMinor, daysRemaining), daysRemaining);
 }
 
 /**
@@ -152,14 +163,7 @@ export function formatForecastNudge(forecast: Forecast): string {
 
 /** The Forecast nudge's second line: the way back under, in one number. */
 export function formatForecastHint(forecast: Forecast): string {
-  if (forecast.safePerDayMinor === 0) {
-    // Already at or past the cap: there is no daily amount that keeps it under,
-    // only the fact that the money is gone.
-    return `Nothing left to spend this Cycle — ${formatDaysRemaining(forecast.daysRemaining)}.`;
-  }
-  return `${formatMoney(forecast.safePerDayMinor)} a day keeps it under, ${formatDaysRemaining(
-    forecast.daysRemaining,
-  )}.`;
+  return formatSafePerDay(forecast.safePerDayMinor, forecast.daysRemaining);
 }
 
 /**

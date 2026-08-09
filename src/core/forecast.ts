@@ -21,14 +21,15 @@ import type { LocalDay } from './day';
 import type { Category, Cycle } from './types';
 
 /**
- * How many days into a Cycle the Forecast stays quiet for.
+ * How many days into a Cycle the Forecast stays quiet for. Module-private: the
+ * window is only ever visible as silence, never as a number a screen prints.
  *
  * On day one a single RM 150 dinner projects to RM 4,650 — arithmetically
  * correct and completely useless. Three days is long enough for the run-rate to
  * mean something and short enough that a genuinely runaway Cycle is still caught
  * with most of it left to fix.
  */
-export const FORECAST_SUPPRESSION_DAYS = 3;
+const FORECAST_SUPPRESSION_DAYS = 3;
 
 /**
  * Where a capped category's Cycle is heading — everything the nudge on Home,
@@ -68,8 +69,8 @@ export interface Forecast {
  * Also true for a day before the Cycle even started — a caller looking at a
  * stale Cycle gets silence rather than a projection divided by zero.
  */
-export function isForecastSuppressed(cycle: Cycle, today: LocalDay): boolean {
-  return daysElapsed(cycle, today) <= FORECAST_SUPPRESSION_DAYS;
+function isSuppressed(elapsed: number): boolean {
+  return elapsed <= FORECAST_SUPPRESSION_DAYS;
 }
 
 /**
@@ -79,8 +80,7 @@ export function isForecastSuppressed(cycle: Cycle, today: LocalDay): boolean {
  * integer sen (ADR-0006), and a projection that carried a fraction of a sen
  * would be a float pretending to be money.
  */
-function project(spentMinor: number, cycle: Cycle, today: LocalDay): number {
-  const elapsed = daysElapsed(cycle, today);
+function project(spentMinor: number, cycle: Cycle, elapsed: number): number {
   return Math.round((spentMinor * cycleLength(cycle)) / elapsed);
 }
 
@@ -88,8 +88,9 @@ function forecastOf(
   view: CappedCategoryBudget,
   cycle: Cycle,
   today: LocalDay,
+  elapsed: number,
 ): Forecast | undefined {
-  const projectedMinor = project(view.spentMinor, cycle, today);
+  const projectedMinor = project(view.spentMinor, cycle, elapsed);
   const projectedOverMinor = projectedMinor - view.capMinor;
   // On pace to come in under (or exactly on) the cap: nothing to nudge about.
   if (projectedOverMinor <= 0) {
@@ -104,7 +105,7 @@ function forecastOf(
     projectedMinor,
     projectedOverMinor,
     projectedPercent: (projectedMinor * 100) / view.capMinor,
-    daysElapsed: daysElapsed(cycle, today),
+    daysElapsed: elapsed,
     daysRemaining: remaining,
     safePerDayMinor: safePerDay(view.remainingMinor, remaining),
   };
@@ -120,10 +121,11 @@ export function forecastFor(
   cycle: Cycle,
   today: LocalDay,
 ): Forecast | undefined {
-  if (!view.capped || isForecastSuppressed(cycle, today)) {
+  const elapsed = daysElapsed(cycle, today);
+  if (!view.capped || isSuppressed(elapsed)) {
     return undefined;
   }
-  return forecastOf(view, cycle, today);
+  return forecastOf(view, cycle, today, elapsed);
 }
 
 /**
