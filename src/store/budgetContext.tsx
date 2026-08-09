@@ -25,6 +25,7 @@ import {
   type Budget,
   type BudgetSummary,
   type CategoryBudget,
+  type Expense,
 } from '../core';
 import { BudgetRepository } from './budgetRepository';
 import { useCategories } from './categoryContext';
@@ -46,6 +47,15 @@ interface BudgetContextValue {
   top: CategoryBudget[];
   /** One category's position, or undefined if it isn't an active category. */
   viewFor: (categoryId: string) => CategoryBudget | undefined;
+  /**
+   * One category's position with `extra` expenses also counted — what a save
+   * has just landed on, before the new expense has made it through state.
+   *
+   * A save screen needs to say where it left the user *now*, and React hasn't
+   * re-rendered this provider yet at that moment. Composing the extras here
+   * rather than in the screen keeps every number coming from one place.
+   */
+  viewAfter: (categoryId: string, extra: readonly Expense[]) => CategoryBudget | undefined;
   /** The cap on a category in minor units, or null when tracked-only. */
   capFor: (categoryId: string) => number | null;
   /** Set or change a category's cap. */
@@ -85,6 +95,8 @@ export function BudgetProvider({ children }: { children: React.ReactNode }) {
     };
 
     const views = categoryBudgets(categories, budgets, expenses, cycle);
+    const pick = (list: readonly CategoryBudget[], categoryId: string) =>
+      list.find((v) => v.category.id === categoryId);
 
     return {
       ready,
@@ -92,7 +104,9 @@ export function BudgetProvider({ children }: { children: React.ReactNode }) {
       views,
       summary: budgetSummary(views, cycle, today),
       top: topBudgets(views, TOP_BUDGET_LIMIT),
-      viewFor: (categoryId) => views.find((v) => v.category.id === categoryId),
+      viewFor: (categoryId) => pick(views, categoryId),
+      viewAfter: (categoryId, extra) =>
+        pick(categoryBudgets(categories, budgets, [...expenses, ...extra], cycle), categoryId),
       capFor: (categoryId) => findBudget(budgets, categoryId)?.capMinor ?? null,
       setCap: (categoryId, capMinor) => commit(coreSetCap(budgets, categoryId, capMinor)),
       clearCap: (categoryId) => commit(coreClearCap(budgets, categoryId)),

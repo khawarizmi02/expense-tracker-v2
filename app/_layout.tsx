@@ -17,7 +17,9 @@ import { StoreProvider } from '../src/store/storeContext';
 import { CategoryProvider } from '../src/store/categoryContext';
 import { ExpenseProvider } from '../src/store/expenseContext';
 import { BudgetProvider } from '../src/store/budgetContext';
+import { AlertProvider } from '../src/notifications/alertContext';
 import { SettingsProvider, useSettings } from '../src/store/settingsContext';
+import { ToastProvider } from '../src/ui/Toast';
 
 /**
  * Keep onboarding and the app in sync with whether a payday has been captured:
@@ -99,7 +101,14 @@ export default function RootLayout() {
                 <ExpenseProvider>
                   {/* Budgets derive from all three above, so they nest last. */}
                   <BudgetProvider>
-                    <RootStack />
+                    {/* Alerts watch the budget views, so they nest inside them.
+                        The toast host wraps the stack so any screen can raise
+                        one, and it draws over whatever is on top. */}
+                    <AlertProvider>
+                      <ToastProvider>
+                        <RootStack />
+                      </ToastProvider>
+                    </AlertProvider>
                   </BudgetProvider>
                 </ExpenseProvider>
               </CategoryProvider>

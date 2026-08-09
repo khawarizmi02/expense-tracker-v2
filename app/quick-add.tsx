@@ -16,12 +16,14 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { MAX_AMOUNT_MINOR } from '../src/core';
+import { MAX_AMOUNT_MINOR, saveFeedback } from '../src/core';
 import { GradientBackground } from '../src/ui/GradientBackground';
 import { DayPicker } from '../src/ui/DayPicker';
+import { toneFor, useToast } from '../src/ui/Toast';
 import { ioniconFor } from '../src/ui/categoryIcon';
-import { formatDayHeading, formatMoney } from '../src/ui/format';
+import { formatDayHeading, formatMoney, formatSaveFeedback } from '../src/ui/format';
 import { useTheme } from '../src/design/theme';
+import { useBudgets } from '../src/store/budgetContext';
 import { useCategories } from '../src/store/categoryContext';
 import { useExpenses } from '../src/store/expenseContext';
 
@@ -37,6 +39,8 @@ export default function QuickAddModal() {
   const router = useRouter();
   const { activeCategories } = useCategories();
   const { log, today } = useExpenses();
+  const { viewAfter } = useBudgets();
+  const { show } = useToast();
 
   const [amountMinor, setAmountMinor] = useState(0);
   const [categoryId, setCategoryId] = useState<string | null>(null);
@@ -63,7 +67,13 @@ export default function QuickAddModal() {
     if (!canSave) {
       return;
     }
-    log({ amountMinor, categoryId, merchant, note, day, source: 'manual' });
+    const expense = log({ amountMinor, categoryId, merchant, note, day, source: 'manual' });
+    // The state the save *landed* on, not the one it started from: `viewAfter`
+    // counts the new expense that React hasn't re-rendered the providers with
+    // yet. The push notification for a crossing is the AlertProvider's job —
+    // this is only the in-app half (spec story 52).
+    const feedback = saveFeedback(viewAfter(categoryId, [expense]));
+    show(formatSaveFeedback(feedback), toneFor(feedback));
     router.back();
   };
 

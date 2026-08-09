@@ -8,21 +8,25 @@
 import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import type { CategoryBudget } from '../core';
+import { ALERT_THRESHOLDS, type CategoryBudget } from '../core';
 import { useTheme, type Theme } from '../design/theme';
 import { ioniconFor } from './categoryIcon';
 import { formatMoney, formatPercent } from './format';
 
 /**
- * The color a bar and its percent read in: calm within the cap, danger once
- * past it.
+ * The color a bar and its percent read in: calm well inside the cap, a warning
+ * from the first Alert threshold, danger once past the cap.
  *
- * Only the one threshold, because only "over the cap" is a fact T5 knows. The
- * 80% warning belongs to the Alert rules and arrives with them (spec § Alert) —
- * inventing it here would put the same number in two places.
+ * The two numbers are `ALERT_THRESHOLDS` rather than literals, so the bar turns
+ * amber at exactly the point the 80% Alert goes out (CONTEXT.md § Alert) and the
+ * two can never drift apart.
  */
 export function budgetTone(colors: Theme['colors'], percent: number): string {
-  return percent >= 100 ? colors.danger : colors.success;
+  const [warn, over] = ALERT_THRESHOLDS;
+  if (percent >= over) {
+    return colors.danger;
+  }
+  return percent >= warn ? colors.warning : colors.success;
 }
 
 /**

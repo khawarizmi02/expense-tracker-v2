@@ -3,13 +3,16 @@
 // "RM 1,250.00", "Today", "Sat, 26 Jul" — is a UI concern and lives here.
 
 import {
+  ALERT_THRESHOLDS,
   MINOR_UNITS_PER_MAJOR,
   addDays,
   fromLocalDay,
   safePerDay,
+  type Alert,
   type CategoryBudget,
   type Cycle,
   type LocalDay,
+  type SaveFeedback,
 } from '../core';
 
 /** Kira's currency symbol. v1 is ringgit-only. */
@@ -130,6 +133,55 @@ export function formatPaceSentence(view: CategoryBudget, daysRemaining: number):
     return 'Nothing left to spend this Cycle.';
   }
   return `${formatMoney(perDay)} a day keeps you under, ${formatDaysRemaining(daysRemaining)}.`;
+}
+
+/**
+ * The post-save toast (T6): one line reflecting where the save left the
+ * category (spec story 52). The state itself is the core's — `saveFeedback`
+ * picks it off the same thresholds the Alerts use — so this is only the words.
+ *
+ * The streak-extended line joins these when there is a Streak to extend (T11).
+ */
+export function formatSaveFeedback(feedback: SaveFeedback): string {
+  switch (feedback.kind) {
+    case 'saved':
+      return 'Expense saved.';
+    case 'on-track':
+      return `Saved — ${feedback.category.name} at ${formatPercent(feedback.percent)} of its cap.`;
+    case 'at-threshold':
+      return `Saved — ${feedback.category.name} at ${formatPercent(
+        feedback.percent,
+      )}, ${formatMoney(feedback.remainingMinor)} left.`;
+    case 'over-budget':
+      return `Saved — ${feedback.category.name} ${formatOverCap(feedback.overMinor)}.`;
+  }
+}
+
+/**
+ * How a category sits once it is at or past its cap — "is RM 30.00 over its
+ * cap" / "has used its whole cap". Landing exactly on the cap is over-budget by
+ * nothing, and saying "RM 0.00 over" would read like a rounding error.
+ */
+function formatOverCap(overMinor: number): string {
+  return overMinor > 0 ? `is ${formatMoney(overMinor)} over its cap` : 'has used its whole cap';
+}
+
+/** The title and body of the push notification an Alert is delivered as (T6). */
+export function formatAlertNotification(alert: Alert): { title: string; body: string } {
+  const [, over] = ALERT_THRESHOLDS;
+  const spendOfCap = `${formatMoney(alert.spentMinor)} of your ${formatMoney(alert.capMinor)} cap`;
+  if (alert.threshold === over) {
+    return {
+      title: `${alert.category.name} is over budget`,
+      body: `${spendOfCap} — it ${formatOverCap(alert.overMinor)}.`,
+    };
+  }
+  // Only ever reached for an Alert that `announcements` let through, so the
+  // percent here is below the cap and the figure left is a real one.
+  return {
+    title: `${alert.category.name} at ${formatPercent(alert.percent)}`,
+    body: `${spendOfCap}. ${formatMoney(alert.capMinor - alert.spentMinor)} left this Cycle.`,
+  };
 }
 
 /**
